@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微信公众号排版实时预览</title>
+    <script>
+        // API 基础地址（使用后端服务时为空，直接使用相对路径）
+        const API_BASE = 'http://localhost:3000';
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .input-group label {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            width: 250px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .theme-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .theme-btn {
+            padding: 10px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .theme-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .theme-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 1px solid rgba(0,0,0,0.2);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .action-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .action-btn.secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .action-btn.secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: calc(100vh - 200px);
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h3 {
+            font-size: 1rem;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-header .icon {
+            font-size: 1.2rem;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow: auto;
+        }
+
+        #markdown-input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            padding: 20px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+        }
+
+        #preview-area {
+            padding: 20px;
+            min-height: 100%;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: #f44336;
+        }
+
+        /* 服务状态指示器 */
+        .status-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 0.85rem;
+            z-index: 100;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ccc;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.online {
+            background: #4caf50;
+        }
+
+        .status-dot.offline {
+            background: #f44336;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* 手机预览模式 */
+        .preview-wrapper {
+            max-width: 100%;
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .panel {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 微信公众号排版实时预览</h1>
+            <p>在左侧输入 Markdown，右侧实时预览排版效果</p>
+        </div>
+
+        <div class="controls">
+            <div class="controls-row">
+                <div class="input-group">
+                    <label>文章标题</label>
+                    <input type="text" id="article-title" placeholder="输入文章标题..." value="欢迎使用微信排版工具">
+                </div>
+
+                <div class="input-group">
+                    <label>作者</label>
+                    <input type="text" id="article-author" placeholder="作者名称..." value="游白">
+                </div>
+
+                <div class="theme-selector" id="theme-selector">
+                    <button class="theme-btn active" data-theme="youbai">
+                        <span class="theme-color" style="background: #fafafa;"></span>
+                        游白·硅基书写
+                    </button>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="action-btn secondary" onclick="copyHTML()">
+                        📋 复制 HTML
+                    </button>
+                    <button class="action-btn secondary" onclick="generatePushCommand()">
+                        📋 推送命令
+                    </button>
+                    <button class="action-btn primary" onclick="pushToWechat()">
+                        🚀 推送到公众号
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h3><span class="icon">✏️</span> Markdown 输入</h3>
+                    <button class="action-btn secondary" style="padding: 5px 12px; font-size: 0.8rem;" onclick="loadSample()">
+                        加载示例
+                    </button>
+                </div>
+                <div class="panel-content">
+                    <textarea id="markdown-input" placeholder="在此输入 Markdown 内容..."># 欢迎使用微信排版工具
+
+这是一个**实时预览**的微信公众号排版工具。
+
+## 主要功能
+
+- ✅ 实时预览排版效果
+- ✅ 极简专注，单一主题风格
+- ✅ 一键复制 HTML
+- ✅ 直接推送到公众号草稿箱
+
+## 代码示例
+
+\`\`\`javascript
+function hello() {
+    console.log("Hello, WeChat!");
+}
+\`\`\`
+
+## 引用示例
+
+>  好的设计是看不见的设计。
+
+>
+>  — 乔布斯
+
+## 列表示例
+
+1. 第一项
+2. 第二项
+3. 第三项
+
+- 无序列表项
+- 另一项
+- 还有一项
+
+---
+
+开始你的创作吧！🎉</textarea>
+                </div>
+            </div>
+
+            <div class="panel" id="preview-panel">
+                <div class="panel-header">
+                    <h3><span class="icon">👁️</span> 实时预览</h3>
+                    <span style="font-size: 0.85rem; color: #666;">微信效果</span>
+                </div>
+                <div class="panel-content" id="preview-panel-content">
+                    <div class="preview-wrapper">
+                        <div id="preview-area"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <span id="toast-icon">✓</span>
+        <span id="toast-message">操作成功</span>
+    </div>
+
+    <!-- 服务状态指示器 -->
+    <div class="status-indicator">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">检查中...</span>
+    </div>
+
+    <script>
+        // 检查后端服务状态
+        async function checkServiceStatus() {
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+
+            try {
+                const response = await fetch(`${API_BASE}/health`, { method: 'GET' });
+                if (response.ok) {
+                    statusDot.className = 'status-dot online';
+                    statusText.textContent = '后端服务在线';
+                } else {
+                    throw new Error('服务异常');
+                }
+            } catch {
+                statusDot.className = 'status-dot offline';
+                statusText.textContent = '后端服务离线';
+            }
+        }
+
+        // 定期检查服务状态
+        checkServiceStatus();
+        setInterval(checkServiceStatus, 10000);
+
+        // 主题配色方案
+        const themes = {
+            youbai: {
+                name: '游白·硅基书写',
+                background: '#FFFFFF',
+                text: '#333333',
+                accent: '#1C1C1E',
+                border: '#E5E5EA',
+                codeBg: '#F2F2F7',
+                quoteBg: '#FAFAFA',
+                quoteBorder: '#D1D1D6',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif',
+                baseFontSize: '15px',
+                lineHeight: '1.8',
+                letterSpacing: '0',
+                paragraphMargin: '30px'
+            }
+        };
+
+        let currentTheme = 'youbai';
+
+        // Markdown 解析器
+        async function parseMarkdown(markdown, theme) {
+            const t = themes[theme];
+            let html = markdown;
+
+            console.log('🔍 Parsing markdown for theme:', theme);
+            console.log('📝 Input markdown preview:', markdown.substring(0, 200));
+
+            // 第一步：先处理代码块（在行内代码之前），用占位符保护
+            console.log('🔍 处理代码块前...');
+            const codeBlocks = [];
+            // 匹配代码块，语言名称可以包含空格（如 "plain text"）
+            html = html.replace(/```([^\n]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+                const fileName = lang.trim() || 'main.py';
+                console.log('📝 找到代码块:', fileName);
+                const index = codeBlocks.length;
+                // 对代码内容进行HTML转义，但保持占位符状态
+                const escapedCode = code.trim()
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                // 将代码内容中的换行符替换为<br>，确保空行正确显示
+                const displayCode = escapedCode.replace(/\n/g, '<br>');
+                // 生成单行HTML，避免被段落处理的split('\n\n')错误分割
+                const html = `<section style="margin: 30px 10px;"><div style="background-color: #FFFFFF; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); padding: 4px; overflow: hidden;"><div style="background-color: #1E1E1E; border-radius: 8px; overflow: hidden;"><div style="height: 38px; background-color: #2D2D2D; display: flex; align-items: center; justify-content: space-between; padding: 0 16px;"><div style="display: flex; gap: 8px;"><span style="display: block; width: 12px; height: 12px; border-radius: 50%; background-color: #FF5F56;"></span><span style="display: block; width: 12px; height: 12px; border-radius: 50%; background-color: #FFBD2E;"></span><span style="display: block; width: 12px; height: 12px; border-radius: 50%; background-color: #27C93F;"></span></div><span style="font-family: SF Mono, Consolas, Monaco, monospace; font-size: 12px; color: #8E8E93; letter-spacing: 0.5px;">${fileName}</span></div><div style="padding: 24px 20px; overflow-x: auto;"><code style="display: block; margin: 0; font-family: SF Mono, Consolas, Monaco, monospace; font-size: 14px; color: #E5E5EA; line-height: 1.6;">${displayCode}</code></div></div></div></section>`;
+                codeBlocks.push(html);
+                console.log('✅ 代码块HTML生成完毕');
+                const placeholder = `__CODE_BLOCK_${index}__`;
+                console.log('🔍 返回占位符:', placeholder);
+                return placeholder;
+            });
+            console.log('✅ 代码块处理完成，共找到', codeBlocks.length, '个代码块');
+            console.log('🔍 代码块处理后HTML包含占位符:', html.includes('__CODE_BLOCK_0__'));
+
+            // 第二步：先处理多行块（提示框、警告框、总结卡片），用占位符保护
+            const multiLineBlocks = [];
+            html = html.replace(/\[!(tip|warn|summary)(?:\s+title=[^\n]+)?\][\s\S]*?(?=\n\n|\n\[!|\n#|$)/g, (match) => {
+                const index = multiLineBlocks.length;
+                multiLineBlocks.push(match);
+                return `__MULTILINE_BLOCK_${index}__`;
+            });
+            console.log('✅ 多行块处理完成，共找到', multiLineBlocks.length, '个多行块');
+
+            // 第三步：处理行内代码（在转义HTML之前）- 使用临时对象存储
+            const inlineCodes = [];
+            html = html.replace(/`([^`]+)`/g, (match, code) => {
+                const index = inlineCodes.length;
+                inlineCodes.push(code);
+                return `«CODE${index}»`;
+            });
+
+            // 第四步：转义 HTML
+            console.log('🔍 HTML转义前，包含占位符:', html.includes('__CODE_BLOCK_0__'));
+            html = html.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;');
+            console.log('🔍 HTML转义后，包含占位符:', html.includes('__CODE_BLOCK_0__'));
+
+            // 第五步：恢复行内代码并应用样式
+            html = html.replace(/«CODE(\d+)»/g, (match, index) => {
+                const code = inlineCodes[parseInt(index)];
+                // 先解码HTML实体，再转义特殊字符
+                const decoded = code.replace(/&#x20;/g, ' ').replace(/&#(\d+);/g, (m, n) => String.fromCharCode(n));
+                const escapedCode = decoded.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return `<span style="font-family: 'SF Mono', Consolas, Monaco, monospace; font-size: 0.9em; color: #D13438; background-color: #F2F2F7; padding: 2px 6px; border-radius: 4px; margin: 0 2px; letter-spacing: 0;">${escapedCode}</span>`;
+            });
+
+            // 第六步：提前恢复代码块和多行块（在其他Markdown处理之前，避免被破坏）
+            console.log('🔍 提前恢复代码块，包含占位符:', html.includes('__CODE_BLOCK_0__'));
+            codeBlocks.forEach((codeHtml, index) => {
+                const placeholder = `__CODE_BLOCK_${index}__`;
+                html = html.replace(placeholder, codeHtml);
+            });
+            console.log('✅ 代码块已提前恢复');
+
+            console.log('🔍 提前恢复多行块，包含占位符:', html.includes('__MULTILINE_BLOCK_'));
+            multiLineBlocks.forEach((block) => {
+                const placeholder = `__MULTILINE_BLOCK_${multiLineBlocks.indexOf(block)}__`;
+                // 提示框
+                if (block.match(/^\[!tip\]/)) {
+                    const content = block.replace(/^\[!tip\]\s*\n?/, '').trim();
+                    const styled = `<section style="margin: 20px 0; padding: 16px; background-color: rgb(246, 248, 250); border-radius: 6px; border-left: 3px solid rgb(0, 122, 255); display: flex; align-items: flex-start;">
+<div style="margin-right: 12px; margin-top: 2px; font-size: 16px; line-height: 1;">💡</div>
+<div style="flex-grow: 1; font-size: 14.5px; color: rgb(44, 44, 46); line-height: 1.6;">
+<strong style="display: block; margin-bottom: 4px; color: rgb(28, 28, 29); font-weight: 600;">提示</strong>
+${content}
+</div>
+</section>`;
+                    html = html.replace(placeholder, styled);
+                }
+                // 警告框
+                else if (block.match(/^\[!warn\]/)) {
+                    const content = block.replace(/^\[!warn\]\s*\n?/, '').trim();
+                    const styled = `<section style="margin: 20px 0; padding: 16px; background-color: rgb(255, 249, 240); border-radius: 6px; border-left: 3px solid rgb(255, 149, 0); display: flex; align-items: flex-start;">
+<div style="margin-right: 12px; margin-top: 2px; font-size: 16px; line-height: 1;">⚠️</div>
+<div style="flex-grow: 1; font-size: 14.5px; color: rgb(74, 74, 74); line-height: 1.6;">
+${content}
+</div>
+</section>`;
+                    html = html.replace(placeholder, styled);
+                }
+                // 总结卡片 - 使用table布局确保微信兼容
+                else if (block.match(/^\[!summary\]/)) {
+                    const titleMatch = block.match(/^\[!summary\]\s*title=([^\n]+)\s*\n?/);
+                    const title = titleMatch ? titleMatch[1] : '总结';
+                    const content = block.replace(/^\[!summary\][^\n]*\n?/, '').trim();
+                    const styled = `<table style="width: 100%; margin: 30px 0; border: 1px solid rgb(229, 229, 234); border-radius: 8px; border-collapse: separate; background-color: rgb(255, 255, 255);"><tr><td style="padding: 12px 16px; background-color: rgb(250, 250, 250); border-bottom: 1px dashed rgb(209, 209, 214);"><table style="width: 100%; border-collapse: collapse;"><tr><td style="padding: 0;"><span style="background-color: rgb(52, 199, 89); width: 6px; height: 6px; display: inline-block; border-radius: 50%; margin-right: 8px;"></span><span style="font-family: SF Mono, Consolas, monospace; font-size: 10px; color: rgb(142, 142, 147); letter-spacing: 1px;">EXECUTION_SUMMARY</span></td><td style="padding: 0; text-align: right;"><span style="font-size: 14px; opacity: 0.6;">🧾</span></td></tr></table></td></tr><tr><td style="padding: 20px 16px;"><h4 style="margin: 0 0 12px 0; font-size: 16px; color: rgb(28, 28, 30); font-weight: 600;">${title}</h4><p style="margin: 0; font-size: 14.5px; color: rgb(74, 74, 74); line-height: 1.7;">${content}</p></td></tr><tr><td style="padding: 10px 16px; border-top: 1px solid rgb(242, 242, 247); text-align: right;"><span style="font-family: -apple-system, sans-serif; font-size: 10px; color: rgb(199, 199, 204); letter-spacing: 0.5px; text-transform: uppercase;">Generated by Toolbox</span></td></tr></table>`;
+                    html = html.replace(placeholder, styled);
+                }
+            });
+            console.log('✅ 多行块已提前恢复');
+
+            // 标题 - 使用游白·硅基书写风格
+            // H1 - 主标题 ROOT
+            html = html.replace(/^# (.+)$/gm, (match, title) => {
+                return `<div style="margin: 45px 0 40px 0; padding-bottom: 12px; border-bottom: 2px solid #E5E5EA;">
+<div><span style="background-color: #1C1C1E; color: rgb(255, 255, 255); font-family: SF Mono, monospace; font-size: 13px; font-weight: bold; padding: 3px 8px; border-radius: 4px; margin-right: 6px;">&gt;_</span><span style="font-family: -apple-system, sans-serif; font-size: 11px; color: rgb(142, 142, 147); letter-spacing: 1.5px; font-weight: 600;">ROOT</span></div>
+<div style="margin-top: 2px; font-family: 楷体, Kaiti, serif; font-size: 22px; font-weight: bold; color: rgb(44, 44, 46); letter-spacing: 2px;">${title}</div>
+</div>`;
+            });
+
+            // H2 - 二级标题 SECTION
+            html = html.replace(/^## (.+)$/gm, (match, title) => {
+                return `<div style="margin: 45px 0 32px 0; padding-bottom: 8px; border-bottom: 1.5px solid #E5E5EA;">
+<div><span style="background-color: #1C1C1E; color: rgb(255, 255, 255); font-family: SF Mono, monospace; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-right: 6px;">&gt;_</span><span style="font-family: -apple-system, sans-serif; font-size: 10px; color: rgb(142, 142, 147); letter-spacing: 1px;">SECTION</span></div>
+<div style="margin-top: 2px; font-family: 楷体, Kaiti, serif; font-size: 22px; font-weight: bold; color: rgb(44, 44, 46); letter-spacing: 1.5px;">${title}</div>
+</div>`;
+            });
+
+            // H3 - 三级标题 NODE
+            html = html.replace(/^### (.+)$/gm, (match, title) => {
+                return `<div style="margin: 45px 0 24px 0; padding-bottom: 8px; border-bottom: 1.5px solid #E5E5EA;">
+<div><span style="background-color: #1C1C1E; color: rgb(255, 255, 255); font-family: SF Mono, monospace; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-right: 6px;">&gt;_</span><span style="font-family: -apple-system, sans-serif; font-size: 10px; color: rgb(142, 142, 147); letter-spacing: 1px;">NODE</span></div>
+<div style="margin-top: 2px; font-family: 楷体, Kaiti, serif; font-size: 22px; font-weight: bold; color: rgb(44, 44, 46); letter-spacing: 1px;">${title}</div>
+</div>`;
+            });
+
+            // H4 - 四级标题 ITEM
+            html = html.replace(/^#### (.+)$/gm, (match, title) => {
+                return `<div style="margin: 45px 0 20px 0; padding-bottom: 6px; border-bottom: 1px solid #E5E5EA;">
+<div><span style="background-color: #1C1C1E; color: rgb(255, 255, 255); font-family: SF Mono, monospace; font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 3px; margin-right: 5px;">&gt;_</span><span style="font-family: -apple-system, sans-serif; font-size: 9px; color: rgb(142, 142, 147); letter-spacing: 0.8px;">ITEM</span></div>
+<div style="margin-top: 2px; font-family: 楷体, Kaiti, serif; font-size: 22px; font-weight: bold; color: rgb(44, 44, 46); letter-spacing: 1px;">${title}</div>
+</div>`;
+            });
+
+            // H5 - 五级标题
+            html = html.replace(/^##### (.+)$/gm, `<h5 style="font-size: 17px; color: ${t.text}; margin: 28px 0 16px 0; font-weight: 600; font-family: '楷体', 'Kaiti', serif; letter-spacing: 0.5px;">$1</h5>`);
+
+            // H6 - 六级标题
+            html = html.replace(/^###### (.+)$/gm, `<h6 style="font-size: 16px; color: ${t.text}; margin: 24px 0 12px 0; font-weight: 500; font-family: '楷体', 'Kaiti', serif; opacity: 0.85;">$1</h6>`);
+
+            // 粗体 - 使用参考样式
+            html = html.replace(/\*\*\*(.+?)\*\*\*/g, `<strong><em>$1</em></strong>`);
+            html = html.replace(/\*\*(.+?)\*\*/g, `<strong style="font-weight: 600; color: rgb(28, 28, 30); background: linear-gradient(to top, rgb(229, 229, 234) 35%, transparent 35%); padding: 0 2px; border-radius: 1px;">$1</strong>`);
+            html = html.replace(/\*(.+?)\*/g, `<em style="font-style: italic;">$1</em>`);
+            html = html.replace(/___(.+?)___/g, `<strong><em>$1</em></strong>`);
+            html = html.replace(/__(.+?)__/g, `<strong style="font-weight: 600; color: rgb(28, 28, 30); background: linear-gradient(to top, rgb(229, 229, 234) 35%, transparent 35%); padding: 0 2px; border-radius: 1px;">$1</strong>`);
+            html = html.replace(/_(.+?)_/g, `<em style="font-style: italic;">$1</em>`);
+
+            // 引用块 - 支持多行引用（包括空行）
+            // 收集所有引用块
+            const quoteMatches = [];
+            let match;
+            const quoteRegex = /(?:^&gt; .*$\n?)+/gm;
+            while ((match = quoteRegex.exec(html)) !== null) {
+                quoteMatches.push(match[0]);
+            }
+
+            // 处理每个引用块
+            quoteMatches.forEach((quoteBlock) => {
+                const lines = quoteBlock.trim().split('\n');
+                const content = lines.map(line => line.replace(/^&gt; /, '')).join('<br>');
+                const quoteHtml = `<blockquote style="margin: 25px 0; padding: 12px 15px 12px 18px; border-left: 3px solid rgb(209, 209, 214); background-color: rgb(250, 250, 250); border-radius: 0 6px 6px 0;">
+<p style="font-family: 楷体, Kaiti, STKaiti, serif; font-size: 16px; color: rgb(74, 74, 74); line-height: 1.7; margin: 0; letter-spacing: 1px;">${content}</p>
+</blockquote>`;
+                html = html.replace(quoteBlock, quoteHtml);
+            });
+
+            // 无序列表 - 使用参考样式（单行HTML，避免微信换行）
+            console.log('🔍 处理无序列表前...');
+            html = html.replace(/^[*•-] (.+)$/gm, `<div style="display: flex; align-items: baseline;"><span style="color: rgb(0, 122, 255); font-family: SF Mono, Consolas, monospace; font-size: 13px; font-weight: bold; margin-right: 10px; flex-shrink: 0;">&gt;</span><span style="color: rgb(51, 51, 51); line-height: 1.7;">$1</span></div>`);
+            console.log('✅ 无序列表处理完成');
+
+            // 有序列表 - 使用参考样式（单行HTML，避免微信换行）
+            console.log('🔍 处理有序列表前...');
+            html = html.replace(/^\d+\. (.+)$/gm, (match, content) => {
+                const num = match.match(/^(\d+)\./)[1];
+                const paddedNum = String(num).padStart(2, '0');
+                return `<div style="display: flex; align-items: baseline; margin-bottom: 14px;"><span style="font-family: SF Mono, Consolas, monospace; font-size: 11px; color: rgb(28, 28, 30); background-color: rgb(242, 242, 247); padding: 2px 6px; border-radius: 4px; margin-right: 10px; flex-shrink: 0; font-weight: 500;">${paddedNum}</span><span style="color: rgb(51, 51, 51); line-height: 1.7;">${content}</span></div>`;
+            });
+            console.log('✅ 有序列表处理完成');
+
+            // 链接
+            html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, `<a href="$2" style="color: ${t.accent}; text-decoration: underline;">$1</a>`);
+
+            // 图片
+            html = html.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, `<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 8px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">`);
+
+            // 分隔线
+            html = html.replace(/^---+$/gm, `<hr style="border: none; border-top: 2px solid ${t.border}; margin: 25px 0;">`);
+            html = html.replace(/^\*\*\*+$/gm, `<hr style="border: none; border-top: 2px dashed ${t.accent}; margin: 25px 0;">`);
+
+            // 段落处理（保护已生成的HTML块和占位符）
+            console.log('🔍 段落处理前，包含代码块section:', html.includes('<section style="margin: 30px'));
+            html = html.split('\n\n').map(para => {
+                if (!para.trim()) return '';
+                // 跳过已经处理过的HTML块（包括代码块section、列表div等）
+                if (para.startsWith('<h') || para.startsWith('<blockquote') || para.startsWith('<pre') ||
+                    para.startsWith('<hr') || para.startsWith('<section') ||
+                    (para.startsWith('<div') && (para.includes('border-bottom') || para.includes('display: flex'))) ||
+                    para.startsWith('__MULTILINE_BLOCK_')) {
+                    return para;
+                }
+                const content = para.replace(/\n/g, '<br>');
+                return `<p style="margin: ${t.paragraphMargin} 0;"><span style="font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; color: ${t.text}; text-align: justify; font-family: ${t.fontFamily}; letter-spacing: ${t.letterSpacing}; display: block;">${content}</span></p>`;
+            }).join('\n');
+
+            return html;
+        }
+
+        // 简单的代码高亮
+        function highlightCode(code, theme) {
+            const t = themes[theme];
+            let result = code;
+
+            // 关键字
+            const keywords = ['function', 'const', 'let', 'var', 'if', 'else', 'for', 'while', 'return', 'import', 'export', 'class', 'new', 'this', 'async', 'await', 'try', 'catch', 'throw', 'default', 'from', 'typeof', 'instanceof'];
+            keywords.forEach(kw => {
+                const regex = new RegExp(`\\b(${kw})\\b`, 'g');
+                result = result.replace(regex, `<span style="color: #c678dd;">${kw}</span>`);
+            });
+
+            // 字符串
+            result = result.replace(/(["'`])(?:(?!\1)[^\\]|\\.)*?\1/g, '<span style="color: #98c379;">$&</span>');
+
+            // 注释
+            result = result.replace(/(\/\/.*$)/gm, '<span style="color: #5c6370;">$1</span>');
+            result = result.replace(/(\/\*[\s\S]*?\*\/)/g, '<span style="color: #5c6370;">$1</span>');
+
+            // 数字
+            result = result.replace(/\b(\d+\.?\d*)\b/g, '<span style="color: #d19a66;">$1</span>');
+
+            // 函数调用
+            result = result.replace(/\b([a-zA-Z_]\w*)\s*\(/g, '<span style="color: #61afef;">$1</span>(');
+
+            return result;
+        }
+
+        // 生成完整的 HTML
+        async function generateHTML(markdown, theme) {
+            const title = document.getElementById('article-title').value;
+            const author = document.getElementById('article-author').value;
+            const t = themes[theme];
+
+            const content = await parseMarkdown(markdown, theme);
+
+            const contentStyle = `font-family: ${t.fontFamily}; font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; letter-spacing: ${t.letterSpacing !== '0' ? t.letterSpacing : '0px'}; text-align: justify; text-justify: inter-ideograph;`;
+
+            const bgStyle = `background: ${t.background};`;
+            const contentWrapper = `<div style="position: relative; z-index: 1;">
+<!-- 正文内容 -->
+${content.replace(/^\s*<p/, '<p').replace(/^<p[^>]*><\/p>\s*/gi, '')}
+<!-- 结尾标识 -->
+<p style="text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid ${t.border}; color: ${t.text}; opacity: 0.4; font-size: 0.85em; letter-spacing: 0.2em;">— 完 —</p>
+</div>`;
+
+            return `<section style="${contentStyle} color: ${t.text}; padding: 0; ${bgStyle} min-height: 100vh; max-width: 677px; margin: 0 auto; position: relative;">
+${contentWrapper}
+</section>`;
+        }
+
+        // 更新预览
+        async function updatePreview() {
+            const markdown = document.getElementById('markdown-input').value;
+            const html = await generateHTML(markdown, currentTheme);
+            document.getElementById('preview-area').innerHTML = html;
+        }
+
+        // 切换主题
+        function switchTheme(theme) {
+            currentTheme = theme;
+
+            // 更新按钮状态
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.theme === theme) {
+                    btn.classList.add('active');
+                }
+            });
+
+            updatePreview();
+        }
+
+        // 复制 HTML
+        async function copyHTML() {
+            const markdown = document.getElementById('markdown-input').value;
+            const html = await generateHTML(markdown, currentTheme);
+
+            console.log('📋 复制的 HTML 内容:');
+            console.log(html.substring(0, 1000));
+            console.log('--- HTML 结束 ---');
+            showToast('HTML 已复制！', 'success');
+
+            navigator.clipboard.writeText(html).then(() => {
+            }).catch(() => {
+                showToast('复制失败，请手动复制', 'error');
+            });
+        }
+
+        // 推送到公众号（通过后端服务）
+        async function pushToWechat() {
+            const markdown = document.getElementById('markdown-input').value;
+            const title = document.getElementById('article-title').value;
+            const author = document.getElementById('article-author').value;
+            const html = await generateHTML(markdown, currentTheme);
+
+            // 检查后端服务是否可用
+            showLoadingToast('正在检查服务状态...');
+            try {
+                const healthResponse = await fetch(`${API_BASE}/health`, { method: 'GET' });
+                if (!healthResponse.ok) {
+                    throw new Error('后端服务未启动');
+                }
+            } catch (err) {
+                hideToast();
+                setTimeout(() => showToast('请先启动后端服务：npm start', 'error'), 100);
+                return;
+            }
+
+            try {
+                showLoadingToast('正在推送到公众号...');
+
+                const response = await fetch(`${API_BASE}/api/wechat/draft`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: title,
+                        author: author,
+                        digest: markdown.substring(0, 120).replace(/[#*`>\-]/g, '').trim(),
+                        content: html
+                    })
+                });
+
+                const result = await response.json();
+
+                hideToast();
+
+                if (result.error) {
+                    setTimeout(() => showToast('推送失败：' + result.error, 'error'), 100);
+                } else {
+                    setTimeout(() => showToast('✅ 文章已成功推送到公众号草稿箱！', 'success'), 100);
+                }
+            } catch (error) {
+                hideToast();
+                setTimeout(() => showToast('推送失败：' + error.message, 'error'), 100);
+                console.error('推送错误:', error);
+            }
+        }
+
+        // 生成推送命令（备用方案）
+        async function generatePushCommand() {
+            const markdown = document.getElementById('markdown-input').value;
+            const title = document.getElementById('article-title').value;
+            const author = document.getElementById('article-author').value;
+            const html = await generateHTML(markdown, currentTheme);
+
+            // 构建 API 请求体
+            const requestBody = {
+                articles: [{
+                    title: title,
+                    author: author,
+                    digest: markdown.substring(0, 120).replace(/[#*`>\-]/g, '').trim(),
+                    content: html,
+                    thumb_media_id: 'IgP1a23LDfcWZLW6j6L8VEWMpY4CwCYVc4I6NUo4nADrNyVsLdHXzGiNSQfNpuA3',
+                    show_cover_pic: 1,
+                    need_open_comment: 1,
+                    only_fans_can_comment: 0
+                }]
+            };
+
+            // 将 HTML 内容转义用于 JSON
+            const escapedContent = JSON.stringify(requestBody);
+
+            // 生成 curl 命令
+            const command = `# 微信公众号推送命令
+# 1. 先获取 access_token
+TOKEN=$(curl -s "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=wx705454a05a8f7630&secret=cf72ae19369044642dabf43d354544bd" | jq -r '.access_token')
+
+# 2. 创建草稿
+curl -X POST \\
+  "https://api.weixin.qq.com/cgi-bin/draft/add?access_token=\$TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '${escapedContent}'`;
+
+            // 复制到剪贴板
+            navigator.clipboard.writeText(command).then(() => {
+                showToast('推送命令已复制！请在终端粘贴执行', 'success');
+            }).catch(() => {
+                showToast('复制失败', 'error');
+            });
+        }
+
+        // 显示提示
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const msg = document.getElementById('toast-message');
+
+            toast.className = 'toast ' + type;
+            icon.textContent = type === 'success' ? '✓' : (type === 'error' ? '✗' : '⏳');
+            msg.textContent = message;
+
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // 加载中的 toast 不会自动消失
+        function showLoadingToast(message) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const msg = document.getElementById('toast-message');
+
+            toast.className = 'toast';
+            toast.style.background = '#2196F3';
+            icon.textContent = '⏳';
+            msg.textContent = message;
+            toast.classList.add('show');
+        }
+
+        function hideToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('show');
+        }
+
+        // 加载示例内容
+        function loadSample() {
+            const sample = `# 游白·硅基书写
+
+这是游白·硅基书写主题的完整样式展示。
+
+---
+
+## 01 · 文本样式
+
+### 粗体与行内代码
+
+在进行自然语言处理时，我们通常会用到 \`Prompt Engineering\` 技术，以此来引导大模型输出我们期望的 JSON 格式数据。**保持输入与输出的绝对确定性**是核心。
+
+### 斜体与强调
+
+这是*斜体文本*的展示效果，而___粗斜体___则同时具备两种特性。
+
+---
+
+## 02 · 引用块
+
+>  "一个人只拥有此生此世是不够的，他还应该拥有诗意的世界。"
+>  
+>  —— 王小波
+
+---
+
+## 03 · 代码块
+
+\`\`\`python
+def build_toolbox():
+    """
+    用代码构建属于自己的数字世界。
+    """
+    status = "running"
+    while status == "running":
+        create_value()
+
+    return "Done"
+\`\`\`
+
+---
+
+## 04 · 列表系统
+
+### 无序列表
+
+- 支持解析主流的大模型 API 格式（如 OpenAI, Anthropic）
+- 内置断点续传功能，无需担心长文本生成过程中的网络中断
+- 提供实时预览功能，所见即所得
+
+### 有序列表
+
+01. 在本地终端运行安装脚本，初始化环境依赖
+02. 将你的 \`API_KEY\` 填入 \`.env\` 文件中
+03. 点击"Start"，观察右侧控制台的日志输出情况
+
+---
+
+## 05 · 提示框
+
+[!tip]
+游白避坑指南
+在配置云服务器环境时，切记先放行安全组的对应端口，否则无论你怎么修改本地配置，外部都无法访问。
+
+---
+
+## 06 · 警告框
+
+[!warn]
+该接口的调用频率限制为 100次/分钟，请在代码中做好并发控制，避免触发限流机制。
+
+---
+
+## 07 · 总结卡片
+
+[!summary] title=本期核心收获
+1. 明确了 AI 排版工具底层必须实现内容结构与视觉样式的"解耦"。
+2. 掌握了利用 \`opentype.js\` 生成 SVG 矢量硬笔楷体，突破微信字体限制的黑科技。
+3. 构建了一套兼具 Apple 极客感与 MUJI 书写温度的专属组件库。
+
+---
+
+*游白·硅基书写 — 专为技术创作者设计的排版主题*`;
+
+            document.getElementById('markdown-input').value = sample;
+            updatePreview();
+            showToast('示例内容已加载！');
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            const markdownInput = document.getElementById('markdown-input');
+            const titleInput = document.getElementById('article-title');
+            const authorInput = document.getElementById('article-author');
+            const themeSelector = document.getElementById('theme-selector');
+
+            // 实时预览
+            markdownInput.addEventListener('input', updatePreview);
+            titleInput.addEventListener('input', updatePreview);
+            authorInput.addEventListener('input', updatePreview);
+
+            // 主题切换
+            themeSelector.addEventListener('click', (e) => {
+                const btn = e.target.closest('.theme-btn');
+                if (btn) {
+                    switchTheme(btn.dataset.theme);
+                }
+            });
+
+            // 初始预览
+            updatePreview();
+        });
+    </script>
+</body>
+</html>

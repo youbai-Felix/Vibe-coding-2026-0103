@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微信组件排版器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #5b9bd5;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #4a8ac4;
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+
+        /* 组件库面板 */
+        .component-library {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            height: fit-content;
+        }
+
+        .component-library h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .component-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .component-item {
+            padding: 15px;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .component-item:hover {
+            border-color: #5b9bd5;
+            background: #f8fbff;
+            transform: translateX(5px);
+        }
+
+        .component-icon {
+            font-size: 24px;
+        }
+
+        .component-info h4 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .component-info p {
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* 文章内容区 */
+        .article-area {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .article-area h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .component-stack {
+            min-height: 400px;
+            border: 2px dashed #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            background:fafafa;
+        }
+
+        .component-stack.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .stacked-component {
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            position: relative;
+        }
+
+        .stacked-component:hover .component-actions {
+            opacity: 1;
+        }
+
+        .component-actions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .action-btn {
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-up { background: #f0f0f0; color: #666; }
+        .btn-down { background: #f0f0f0; color: #666; }
+        .btn-delete { background: #ff4444; color: white; }
+        .btn-edit { background: #5b9bd5; color: white; }
+
+        .action-btn:hover { opacity: 0.8; }
+
+        /* 摸鱼风 PART 卡片样式 */
+        .moyu-part-card {
+            background: white;
+            border-radius: 16px;
+            padding: 0;
+            margin: 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .moyu-part-card-inner {
+            display: flex;
+            min-height: 140px;
+        }
+
+        .moyu-part-left {
+            width: 90px;
+            background: #f8f9fe;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid #e8e8e8;
+            padding: 20px 0;
+        }
+
+        .moyu-part-num {
+            font-size: 48px;
+            font-weight: 900;
+            color: #4caf50;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .moyu-part-label {
+            font-size: 11px;
+            color: #999;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+
+        .moyu-part-right {
+            flex: 1;
+            padding: 28px 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .moyu-part-title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #000;
+            line-height: 1.4;
+            margin-bottom: 15px;
+        }
+
+        .moyu-part-subtitle {
+            font-size: 13px;
+            color: #888;
+            letter-spacing: 1px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .moyu-part-subtitle span {
+            text-transform: uppercase;
+        }
+
+        .moyu-part-subtitle .dot {
+            width: 4px;
+            height: 4px;
+            background: #ccc;
+            border-radius: 50%;
+        }
+
+        /* 编辑弹窗 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal h3 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #5b9bd5;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        /* 预览区 */
+        .preview-area {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .preview-area h3 {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .preview-content {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background: #fafafa;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .preview-content html {
+            font-size: 16px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 2000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <h1>📱 微信组件排版器 - 摸鱼风</h1>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="previewHTML()">👁️ 预览 HTML</button>
+                <button class="btn btn-success" onclick="pushToWechat()">🚀 推送到公众号</button>
+            </div>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="main-content">
+            <!-- 组件库 -->
+            <div class="component-library">
+                <h3>📦 组件库</h3>
+                <div class="component-list" id="componentList">
+                    <!-- 组件将在这里动态生成 -->
+                </div>
+            </div>
+
+            <!-- 文章内容区 -->
+            <div class="article-area">
+                <h3>📄 文章内容（点击左侧组件添加）</h3>
+                <div class="component-stack empty" id="componentStack">
+                    暂无组件，请从左侧选择组件添加
+                </div>
+            </div>
+        </div>
+
+        <!-- HTML 预览区 -->
+        <div class="preview-area" id="previewArea" style="display: none;">
+            <h3>📋 HTML 预览（可复制）</h3>
+            <div class="preview-content">
+                <pre id="htmlPreview" style="white-space: pre-wrap; word-break: break-all; font-family: 'Monaco', monospace; font-size: 13px; color: #333;"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑弹窗 -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <h3 id="modalTitle">编辑组件</h3>
+            <div id="modalContent"></div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveEdit()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">操作成功</div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        let articleComponents = [];
+        let editingIndex = -1;
+        let editingType = '';
+
+        // 组件库配置 - 在这里添加新组件
+        const componentLibrary = [
+            { id: 'part', icon: '🔢', name: 'PART 分段标题', desc: '带编号的大标题卡片' },
+        ];
+
+        // 初始化组件库
+        function initComponentLibrary() {
+            const listEl = document.getElementById('componentList');
+            if (componentLibrary.length === 0) {
+                listEl.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">暂无组件</p>';
+                return;
+            }
+
+            listEl.innerHTML = componentLibrary.map(comp => `
+                <div class="component-item" onclick="addComponent('${comp.id}')">
+                    <span class="component-icon">${comp.icon}</span>
+                    <div class="component-info">
+                        <h4>${comp.name}</h4>
+                        <p>${comp.desc}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            initComponentLibrary();
+        };
+
+        // 组件模板生成函数
+        // 在这里添加新的组件模板
+        const componentTemplates = {
+            // PART 分段标题
+            part: (num, title, subtitle) => {
+                const paddedNum = String(num).padStart(2, '0');
+                return `
+                <section style="box-sizing: border-box; margin: 32px 0; padding: 20px 24px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                    <section style="display: flex; align-items: center;">
+                        <!-- 左侧：数字 -->
+                        <section style="min-width: 60px; text-align: center;">
+                            <section style="font-size: 32px; font-weight: 800; color: #059669; line-height: 1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; letter-spacing: -1px;">${paddedNum}</section>
+                            <section style="font-size: 8px; color: #9ca3af; letter-spacing: 1px; font-weight: 600; text-transform: uppercase; margin-top: 2px;">PART</section>
+                        </section>
+
+                        <!-- 中间：竖线 -->
+                        <section style="width: 1px; height: 40px; background: #e5e7eb; margin: 0 10px 0 0;"></section>
+
+                        <!-- 右侧：标题 -->
+                        <section style="flex: 1;">
+                            <section style="font-size: 16px; font-weight: 700; color: #111827; line-height: 1.4; margin-bottom: 4px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${title}</section>
+                            <section style="font-size: 11px; color: #9ca3af; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                <span style="text-transform: uppercase; color: #059669; font-weight: 600;">${subtitle.en || ''}</span>
+                            </section>
+                        </section>
+                    </section>
+                </section>`;
+            },
+        };
+
+        // 添加组件
+        function addComponent(type) {
+            const component = { type, data: getDefaultData(type) };
+            articleComponents.push(component);
+            renderStack();
+            showToast('组件已添加');
+        }
+
+        // 获取默认数据
+        function getDefaultData(type) {
+            // 在这里添加新组件的默认数据
+            switch (type) {
+                case 'part':
+                    return { num: articleComponents.filter(c => c.type === 'part').length + 1, title: '标题文字', subtitle: { en: 'ENGLISH' } };
+                default:
+                    return {};
+            }
+        }
+
+        // 渲染组件列表
+        function renderStack() {
+            const stack = document.getElementById('componentStack');
+            if (articleComponents.length === 0) {
+                stack.className = 'component-stack empty';
+                stack.innerHTML = '暂无组件，请从左侧选择组件添加';
+                return;
+            }
+
+            stack.className = 'component-stack';
+            stack.innerHTML = articleComponents.map((comp, index) => `
+                <div class="stacked-component">
+                    <div class="component-actions">
+                        <button class="action-btn btn-up" onclick="moveComponent(${index}, -1)" title="上移">↑</button>
+                        <button class="action-btn btn-down" onclick="moveComponent(${index}, 1)" title="下移">↓</button>
+                        <button class="action-btn btn-edit" onclick="editComponent(${index})" title="编辑">✎</button>
+                        <button class="action-btn btn-delete" onclick="deleteComponent(${index})" title="删除">✕</button>
+                    </div>
+                    ${renderComponentPreview(comp)}
+                </div>
+            `).join('');
+        }
+
+        // 渲染单个组件预览
+        function renderComponentPreview(comp) {
+            const { type, data } = comp;
+            const template = componentTemplates[type];
+
+            if (!template) {
+                return `<section style="padding: 20px; background: #fee; color: #c00;">未知组件类型: ${type}</section>`;
+            }
+
+            // 根据组件类型传递不同的参数
+            // 在这里添加新组件的预览逻辑
+            switch (type) {
+                case 'part':
+                    return template(data.num, data.title, data.subtitle);
+                default:
+                    return template(data);
+            }
+        }
+
+        // 移动组件
+        function moveComponent(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= articleComponents.length) return;
+            [articleComponents[index], articleComponents[newIndex]] = [articleComponents[newIndex], articleComponents[index]];
+            renderStack();
+        }
+
+        // 删除组件
+        function deleteComponent(index) {
+            articleComponents.splice(index, 1);
+            renderStack();
+            showToast('组件已删除');
+        }
+
+        // 编辑组件
+        function editComponent(index) {
+            const comp = articleComponents[index];
+            editingIndex = index;
+            editingType = comp.type;
+
+            const modal = document.getElementById('editModal');
+            const title = document.getElementById('modalTitle');
+            const content = document.getElementById('modalContent');
+
+            const titles = {
+                part: '编辑 PART 分段标题',
+            };
+            title.textContent = titles[comp.type] || '编辑组件';
+
+            // 生成表单
+            let formHtml = '';
+            switch (comp.type) {
+                case 'part':
+                    formHtml = `
+                        <div class="form-group">
+                            <label>编号</label>
+                            <input type="number" id="editNum" value="${comp.data.num}" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>主标题</label>
+                            <input type="text" id="editTitle" value="${comp.data.title}">
+                        </div>
+                        <div class="form-group">
+                            <label>英文副标题</label>
+                            <input type="text" id="editSubtitleEn" value="${comp.data.subtitle.en}">
+                        </div>
+                    `;
+                    break;
+                default:
+                    formHtml = '<p style="color: #999;">该组件暂不支持编辑</p>';
+                    break;
+            }
+            content.innerHTML = formHtml;
+            modal.classList.add('show');
+        }
+
+        // 保存编辑
+        function saveEdit() {
+            const comp = articleComponents[editingIndex];
+            switch (comp.type) {
+                case 'part':
+                    comp.data.num = parseInt(document.getElementById('editNum').value);
+                    comp.data.title = document.getElementById('editTitle').value;
+                    comp.data.subtitle.en = document.getElementById('editSubtitleEn').value;
+                    break;
+                default:
+                    break;
+            }
+            closeModal();
+            renderStack();
+            showToast('保存成功');
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('show');
+            editingIndex = -1;
+            editingType = '';
+        }
+
+        // 生成完整 HTML（使用防御性结构，基于 Tailwind CSS 色系）
+        function generateHTML() {
+            const content = articleComponents.map(comp => renderComponentPreview(comp)).join('\n');
+            return `<section style="box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.7; color: #374151; padding: 24px; background: #f9fafb; min-height: 100vh; max-width: 677px; margin: 0 auto;">
+${content}
+</section>`;
+        }
+
+        // 预览 HTML
+        function previewHTML() {
+            if (articleComponents.length === 0) {
+                showToast('请先添加组件', 'error');
+                return;
+            }
+            const html = generateHTML();
+            const previewArea = document.getElementById('previewArea');
+            const htmlPreview = document.getElementById('htmlPreview');
+            previewArea.style.display = 'block';
+            htmlPreview.textContent = html;
+            previewArea.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 推送到公众号
+        async function pushToWechat() {
+            if (articleComponents.length === 0) {
+                showToast('请先添加组件', 'error');
+                return;
+            }
+
+            const html = generateHTML();
+            const title = '组件排版测试文章';
+
+            try {
+                showToast('正在推送...');
+                const response = await fetch(`${API_BASE}/api/wechat/draft`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: title,
+                        author: '游白',
+                        digest: articleComponents[0].data.title || '测试文章',
+                        content: html
+                    })
+                });
+
+                const result = await response.json();
+                if (result.error) {
+                    showToast('推送失败：' + result.error, 'error');
+                } else {
+                    showToast('✅ 已推送到草稿箱！');
+                }
+            } catch (error) {
+                showToast('推送失败：' + error.message, 'error');
+            }
+        }
+
+        // Toast 提示
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>
