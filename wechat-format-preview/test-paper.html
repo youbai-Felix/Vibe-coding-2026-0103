@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>纸张主题测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Georgia, "Times New Roman", "Songti SC", "Noto Serif SC", "STSong", "SimSun", "PMingLiU", "MingLiU", serif;
+        }
+        .paper-test {
+            max-width: 677px;
+            margin: 0 auto;
+            background: #f4f1ea;
+            padding: 30px 40px;
+            position: relative;
+            min-height: 400px;
+        }
+        .paper-texture-1 {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            opacity: 0.05;
+            z-index: 0;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(139, 69, 19, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(139, 69, 19, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(139, 69, 19, 0.05) 0%, transparent 70%);
+            background-size: 100% 100%, 100% 100%, 100% 100%;
+        }
+        .paper-texture-2 {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            opacity: 0.03;
+            z-index: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(139, 69, 19, 0.3) 19px, rgba(139, 69, 19, 0.3) 20px),
+                        repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(139, 69, 19, 0.3) 19px, rgba(139, 69, 19, 0.3) 20px);
+        }
+        .content {
+            position: relative;
+            z-index: 1;
+            font-size: 16px;
+            line-height: 1.9;
+            letter-spacing: 0.02em;
+            color: #2a2520;
+        }
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            margin: 56px 0 32px;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            position: relative;
+            padding: 30px 0;
+            border-top: 3px double #8b4513;
+            border-bottom: 3px double #8b4513;
+        }
+        p {
+            margin: 24px 0;
+            text-align: justify;
+        }
+    </style>
+</head>
+<body>
+    <div class="paper-test">
+        <div class="paper-texture-1"></div>
+        <div class="paper-texture-2"></div>
+        <div class="content">
+            <h1>纸张主题测试</h1>
+            <p>这是一个测试段落，用来展示衬线字体的效果。如果你看到的是宋体或者其他衬线字体，说明字体设置是正确的。衬线字体有很好的阅读体验，适合长篇文章。</p>
+            <p>背景应该有细微的纸张纹理效果，包括淡淡的网格线和径向渐变的光影效果。这些纹理营造了真实的纸张质感。</p>
+            <p>如果你看不到这些效果，可能需要刷新页面或者清除浏览器缓存。</p>
+        </div>
+    </div>
+</body>
+</html>

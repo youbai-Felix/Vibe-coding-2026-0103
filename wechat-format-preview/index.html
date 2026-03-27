@@ -30,7 +30,7 @@
         .header {
             text-align: center;
             color: white;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .header h1 {
@@ -48,7 +48,7 @@
             background: white;
             border-radius: 12px;
             padding: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
 
@@ -356,6 +356,12 @@
                         🚀 推送到公众号
                     </button>
                 </div>
+                <div class="action-buttons" style="margin-top: 10px;">
+                    <label style="display: flex; align-items: center; font-size: 0.9rem; color: #666; cursor: pointer;">
+                        <input type="checkbox" id="keep-background" checked style="margin-right: 6px; cursor: pointer;">
+                        推送时保留背景色
+                    </label>
+                </div>
             </div>
         </div>
 
@@ -471,7 +477,7 @@ function hello() {
                 quoteBg: '#FAFAFA',
                 quoteBorder: '#D1D1D6',
                 fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif',
-                baseFontSize: '15px',
+                baseFontSize: '16px',
                 lineHeight: '1.8',
                 letterSpacing: '0',
                 paragraphMargin: '30px'
@@ -496,15 +502,16 @@ function hello() {
                 const fileName = lang.trim() || 'main.py';
                 console.log('📝 找到代码块:', fileName);
                 const index = codeBlocks.length;
-                // 对代码内容进行HTML转义，但保持占位符状态
-                const escapedCode = code.trim()
+                // 对代码内容进行HTML转义，并临时替换 * 和 _
+                // 对代码内容进行HTML转义
+                const escapedCode = code
                     .replace(/&/g, '&amp;')
                     .replace(/</g, '&lt;')
                     .replace(/>/g, '&gt;');
-                // 将代码内容中的换行符替换为<br>，确保空行正确显示
+                // 将换行符替换为<br>，确保空行正确显示
                 const displayCode = escapedCode.replace(/\n/g, '<br>');
-                // 生成单行HTML，避免被段落处理的split('\n\n')错误分割
-                const html = `<section style="margin: 30px 10px;"><div style="background-color: #FFFFFF; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); padding: 4px; overflow: hidden;"><div style="background-color: #1E1E1E; border-radius: 8px; overflow: hidden;"><div style="height: 38px; background-color: #2D2D2D; display: flex; align-items: center; justify-content: space-between; padding: 0 16px;"><div style="display: flex; gap: 8px;"><span style="display: block; width: 12px; height: 12px; border-radius: 50%; background-color: #FF5F56;"></span><span style="display: block; width: 12px; height: 12px; border-radius: 50%; background-color: #FFBD2E;"></span><span style="display: block; width: 12px; height: 12px; border-radius: 50%; background-color: #27C93F;"></span></div><span style="font-family: SF Mono, Consolas, Monaco, monospace; font-size: 12px; color: #8E8E93; letter-spacing: 0.5px;">${fileName}</span></div><div style="padding: 24px 20px; overflow-x: auto;"><code style="display: block; margin: 0; font-family: SF Mono, Consolas, Monaco, monospace; font-size: 14px; color: #E5E5EA; line-height: 1.6;">${displayCode}</code></div></div></div></section>`;
+                // 使用section包裹，强制微信保持布局
+                const html = `<section style="margin: 25px 0 0 0;"><section style="background-color: #1E1E1E; border-radius: 12px;"><section style="height: 38px; background-color: #2D2D2D; padding: 0 16px; border-radius: 12px 12px 0 0;"><section style="float: left; height: 38px;"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: #FF5F56; margin-top: 13px;"></span><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: #FFBD2E; margin-left: 8px; margin-top: 13px;"></span><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: #27C93F; margin-left: 8px; margin-top: 13px;"></span></section><section style="clear: both;"></section></section><section style="padding: 24px 20px;"><code style="display: block; margin: 0; font-family: SF Mono, Consolas, Monaco, monospace; font-size: 15px; color: #E5E5EA; line-height: 1.6;">${displayCode}</code></section></section>`;
                 codeBlocks.push(html);
                 console.log('✅ 代码块HTML生成完毕');
                 const placeholder = `__CODE_BLOCK_${index}__`;
@@ -523,7 +530,40 @@ function hello() {
             });
             console.log('✅ 多行块处理完成，共找到', multiLineBlocks.length, '个多行块');
 
-            // 第三步：处理行内代码（在转义HTML之前）- 使用临时对象存储
+            // 第三步：处理列表（在HTML转义之前，避免内容被转义影响）
+            console.log('🔍 收集列表块...');
+            const listBlocks = [];
+
+            // 收集无序列表块（连续的*列表项，支持列表项之间有空行或无空行）
+            html = html.replace(/((?:^[*•-] .+(?:\n(?:\s*|\n\s*\n)[*•-] .+)*)+\n?)/gm, (match) => {
+                listBlocks.push({ type: 'unordered', html: match });
+                return `__LIST_BLOCK_${listBlocks.length - 1}__`;
+            });
+
+            // 收集有序列表块（连续的数字列表项，支持列表项之间有空行或无空行）
+            html = html.replace(/((?:^\d+\. .+(?:\n(?:\s*|\n\s*\n)\d+\. .+)*)+\n?)/gm, (match) => {
+                listBlocks.push({ type: 'ordered', html: match });
+                return `__LIST_BLOCK_${listBlocks.length - 1}__`;
+            });
+
+            console.log('✅ 列表块收集完成，共', listBlocks.length, '个块');
+
+            // 第四步：处理引用块（在转义HTML之前），用占位符保护
+            console.log('🔍 处理引用块前...');
+            const quoteBlocks = [];
+            let quoteMatch;
+            // 匹配引用块及其后面的所有空行
+            const quoteRegex = /((?:^> .*$\n?)+)(\n*)/gm;
+            while ((quoteMatch = quoteRegex.exec(html)) !== null) {
+                quoteBlocks.push({
+                    content: quoteMatch[1]
+                });
+                // 替换为占位符+两个换行符（消耗掉所有原始空行，用两个换行符确保段落分割）
+                html = html.replace(quoteMatch[0], `__QUOTE_BLOCK_${quoteBlocks.length - 1}__\n\n`);
+            }
+            console.log('✅ 引用块处理完成，共找到', quoteBlocks.length, '个引用块');
+
+            // 第五步：处理行内代码（在转义HTML之前）- 使用临时对象存储
             const inlineCodes = [];
             html = html.replace(/`([^`]+)`/g, (match, code) => {
                 const index = inlineCodes.length;
@@ -531,14 +571,14 @@ function hello() {
                 return `«CODE${index}»`;
             });
 
-            // 第四步：转义 HTML
+            // 第五步：转义 HTML
             console.log('🔍 HTML转义前，包含占位符:', html.includes('__CODE_BLOCK_0__'));
             html = html.replace(/&/g, '&amp;')
                        .replace(/</g, '&lt;')
                        .replace(/>/g, '&gt;');
             console.log('🔍 HTML转义后，包含占位符:', html.includes('__CODE_BLOCK_0__'));
 
-            // 第五步：恢复行内代码并应用样式
+            // 第七步：恢复行内代码并应用样式（使用参考样式）
             html = html.replace(/«CODE(\d+)»/g, (match, index) => {
                 const code = inlineCodes[parseInt(index)];
                 // 先解码HTML实体，再转义特殊字符
@@ -547,13 +587,25 @@ function hello() {
                 return `<span style="font-family: 'SF Mono', Consolas, Monaco, monospace; font-size: 0.9em; color: #D13438; background-color: #F2F2F7; padding: 2px 6px; border-radius: 4px; margin: 0 2px; letter-spacing: 0;">${escapedCode}</span>`;
             });
 
-            // 第六步：提前恢复代码块和多行块（在其他Markdown处理之前，避免被破坏）
+            // 第八步：恢复代码块（在HTML转义后，粗体斜体处理前）
             console.log('🔍 提前恢复代码块，包含占位符:', html.includes('__CODE_BLOCK_0__'));
             codeBlocks.forEach((codeHtml, index) => {
                 const placeholder = `__CODE_BLOCK_${index}__`;
-                html = html.replace(placeholder, codeHtml);
+                html = html.replaceAll(placeholder, codeHtml);
             });
             console.log('✅ 代码块已提前恢复');
+
+            // 恢复引用块
+            console.log('🔍 恢复引用块，包含占位符:', html.includes('__QUOTE_BLOCK_'));
+            quoteBlocks.forEach((quote, index) => {
+                const placeholder = `__QUOTE_BLOCK_${index}__`;
+                const lines = quote.content.trim().split('\n');
+                const content = lines.map(line => line.replace(/^> /, '')).join('<br>');
+                // 不添加任何换行符，依靠占位符后面已有的换行符来分割段落
+                const quoteHtml = `<blockquote style="margin: 25px 0 0 0 !important; padding: 12px 15px 12px 18px; border-left: 3px solid rgb(209, 209, 214); background-color: rgb(250, 250, 250); border-radius: 0 6px 6px 0;"><p style="font-family: 楷体, Kaiti, STKaiti, serif; font-size: 16px; color: rgb(74, 74, 74); line-height: 1.7; margin: 0; letter-spacing: 1px;">${content}</p></blockquote>`;
+                html = html.replaceAll(placeholder, quoteHtml);
+            });
+            console.log('✅ 引用块已恢复');
 
             console.log('🔍 提前恢复多行块，包含占位符:', html.includes('__MULTILINE_BLOCK_'));
             multiLineBlocks.forEach((block) => {
@@ -561,141 +613,227 @@ function hello() {
                 // 提示框
                 if (block.match(/^\[!tip\]/)) {
                     const content = block.replace(/^\[!tip\]\s*\n?/, '').trim();
-                    const styled = `<section style="margin: 20px 0; padding: 16px; background-color: rgb(246, 248, 250); border-radius: 6px; border-left: 3px solid rgb(0, 122, 255); display: flex; align-items: flex-start;">
-<div style="margin-right: 12px; margin-top: 2px; font-size: 16px; line-height: 1;">💡</div>
-<div style="flex-grow: 1; font-size: 14.5px; color: rgb(44, 44, 46); line-height: 1.6;">
-<strong style="display: block; margin-bottom: 4px; color: rgb(28, 28, 29); font-weight: 600;">提示</strong>
+                    const styled = `<section style="margin: 20px 0; padding: 16px; background-color: #F6F8FA; border-radius: 6px; border-left: 3px solid #007AFF; display: flex; align-items: flex-start;">
+<section style="margin-right: 12px; margin-top: 2px; font-size: 16px; line-height: 1;">💡</section>
+<section style="flex-grow: 1; font-size: 14.5px; color: #2C2C2E; line-height: 1.6;">
+<section style="display: block; margin-bottom: 4px; color: #1C1C1E; font-weight: 600;">提示</section>
 ${content}
-</div>
+</section>
 </section>`;
-                    html = html.replace(placeholder, styled);
+                    html = html.replaceAll(placeholder, styled);
                 }
                 // 警告框
                 else if (block.match(/^\[!warn\]/)) {
                     const content = block.replace(/^\[!warn\]\s*\n?/, '').trim();
-                    const styled = `<section style="margin: 20px 0; padding: 16px; background-color: rgb(255, 249, 240); border-radius: 6px; border-left: 3px solid rgb(255, 149, 0); display: flex; align-items: flex-start;">
-<div style="margin-right: 12px; margin-top: 2px; font-size: 16px; line-height: 1;">⚠️</div>
-<div style="flex-grow: 1; font-size: 14.5px; color: rgb(74, 74, 74); line-height: 1.6;">
+                    const styled = `<section style="margin: 20px 0; padding: 16px; background-color: #FFF9F0; border-radius: 6px; border-left: 3px solid #FF9500; display: flex; align-items: flex-start;">
+<section style="margin-right: 12px; margin-top: 2px; font-size: 16px; line-height: 1;">⚠️</section>
+<section style="flex-grow: 1; font-size: 14.5px; color: #4A4A4A; line-height: 1.6;">
 ${content}
-</div>
+</section>
 </section>`;
-                    html = html.replace(placeholder, styled);
+                    html = html.replaceAll(placeholder, styled);
                 }
-                // 总结卡片 - 使用table布局确保微信兼容
+                // 总结卡片
                 else if (block.match(/^\[!summary\]/)) {
                     const titleMatch = block.match(/^\[!summary\]\s*title=([^\n]+)\s*\n?/);
                     const title = titleMatch ? titleMatch[1] : '总结';
                     const content = block.replace(/^\[!summary\][^\n]*\n?/, '').trim();
-                    const styled = `<table style="width: 100%; margin: 30px 0; border: 1px solid rgb(229, 229, 234); border-radius: 8px; border-collapse: separate; background-color: rgb(255, 255, 255);"><tr><td style="padding: 12px 16px; background-color: rgb(250, 250, 250); border-bottom: 1px dashed rgb(209, 209, 214);"><table style="width: 100%; border-collapse: collapse;"><tr><td style="padding: 0;"><span style="background-color: rgb(52, 199, 89); width: 6px; height: 6px; display: inline-block; border-radius: 50%; margin-right: 8px;"></span><span style="font-family: SF Mono, Consolas, monospace; font-size: 10px; color: rgb(142, 142, 147); letter-spacing: 1px;">EXECUTION_SUMMARY</span></td><td style="padding: 0; text-align: right;"><span style="font-size: 14px; opacity: 0.6;">🧾</span></td></tr></table></td></tr><tr><td style="padding: 20px 16px;"><h4 style="margin: 0 0 12px 0; font-size: 16px; color: rgb(28, 28, 30); font-weight: 600;">${title}</h4><p style="margin: 0; font-size: 14.5px; color: rgb(74, 74, 74); line-height: 1.7;">${content}</p></td></tr><tr><td style="padding: 10px 16px; border-top: 1px solid rgb(242, 242, 247); text-align: right;"><span style="font-family: -apple-system, sans-serif; font-size: 10px; color: rgb(199, 199, 204); letter-spacing: 0.5px; text-transform: uppercase;">Generated by Toolbox</span></td></tr></table>`;
-                    html = html.replace(placeholder, styled);
+                    // 处理列表项：检查内容是否包含列表格式
+                    const lines = content.split('\n').filter(line => line.trim());
+                    let processedContent = '';
+                    let isList = false;
+                    lines.forEach((line, index) => {
+                        const trimmed = line.trim();
+                        const isLast = index === lines.length - 1;
+                        // 检测有序列表
+                        const orderedMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+                        if (orderedMatch) {
+                            isList = true;
+                            const num = parseInt(orderedMatch[1]);
+                            const paddedNum = String(num).padStart(2, '0');
+                            const itemContent = orderedMatch[2];
+                            const marginTop = index === 0 ? '0' : '15px';
+                            const marginBottom = isLast ? '15px !important' : '0';
+                            processedContent += `<section style="margin-top: ${marginTop}; margin-bottom: ${marginBottom};"><div style="display: flex; align-items: baseline;"><span style="font-family: SF Mono, Consolas, monospace; font-size: 14px; color: rgb(28, 28, 30); background-color: rgb(242, 242, 247); padding: 2px 6px; border-radius: 4px; margin-right: 10px; flex-shrink: 0; font-weight: 500;">${paddedNum}</span><span style="color: rgb(51, 51, 51); line-height: 1.7; font-size: 15px;">${itemContent}</span></div></section>`;
+                        }
+                        // 检测无序列表
+                        else if (trimmed.match(/^[-*•]\s+(.+)$/)) {
+                            isList = true;
+                            const itemContent = trimmed.replace(/^[-*•]\s+/, '');
+                            const marginTop = index === 0 ? '0' : '15px';
+                            const marginBottom = isLast ? '15px !important' : '0';
+                            processedContent += `<section style="margin-top: ${marginTop}; margin-bottom: ${marginBottom};"><div style="display: flex; align-items: baseline;"><span style="color: rgb(0, 122, 255); font-family: SF Mono, Consolas, monospace; font-size: 16px; font-weight: bold; margin-right: 10px; flex-shrink: 0;">&gt;</span><span style="color: rgb(51, 51, 51); line-height: 1.7; font-size: 15px;">${itemContent}</span></div></section>`;
+                        }
+                        // 普通文本
+                        else {
+                            if (isList) {
+                                processedContent += `<section style="margin: 15px 0 0 0;"><span style="display: block; font-size: 14.5px; color: rgb(74, 74, 74); line-height: 1.7;">${trimmed}</span></section>`;
+                            } else {
+                                if (index > 0) {
+                                    processedContent += `<br>${trimmed}`;
+                                } else {
+                                    processedContent = trimmed;
+                                }
+                            }
+                        }
+                    });
+                    if (!isList) {
+                        processedContent = content;
+                    }
+                    const styled = `<section style="margin: 30px 0; border: 1px solid rgb(229, 229, 234); border-radius: 8px; background-color: rgb(255, 255, 255); overflow: hidden;"><section style="padding: 12px 16px; background-color: rgb(250, 250, 250); border-bottom: 1px dashed rgb(209, 209, 214); display: flex; justify-content: space-between; align-items: center;"><section style="display: flex; align-items: center;"><span style="background-color: rgb(52, 199, 89); width: 6px; height: 6px; border-radius: 50%; margin-right: 8px;"></span><span style="font-family: SF Mono, Consolas, monospace; font-size: 10px; color: rgb(142, 142, 147); letter-spacing: 1px;">EXECUTION_SUMMARY</span></section><span style="font-size: 14px; opacity: 0.6;">🧾</span></section><section style="padding: 20px 16px 0 16px;"><span style="display: block; margin: 0 0 12px 0; font-size: 16px; color: rgb(28, 28, 30); font-weight: 600;">${title}</span>${isList ? processedContent : `<span style="display: block; margin: 0 0 20px 0; padding-bottom: 20px; font-size: 14.5px; color: rgb(74, 74, 74); line-height: 1.7;">${processedContent}</span>`}</section><section style="border-top: 1px solid rgb(229, 229, 234) !important; text-align: right; padding: 16px 16px 16px 0 !important;"><section style="display: inline-block;"><span style="font-family: -apple-system, sans-serif; font-size: 10px; color: rgb(199, 199, 204); letter-spacing: 0.5px; text-transform: uppercase;">Generated by Toolbox</span></section></section></section>`;
+                    html = html.replaceAll(placeholder, styled);
                 }
             });
             console.log('✅ 多行块已提前恢复');
 
             // 标题 - 使用游白·硅基书写风格
-            // H1 - 主标题 ROOT
+            // 微信公众号兼容：使用 section 嵌套 + !important 确保样式不被重置
+
+            // H1 - 主标题 ROOT（外层margin控制间距，内层padding-bottom控制分割线位置）
             html = html.replace(/^# (.+)$/gm, (match, title) => {
-                return `<div style="margin: 45px 0 40px 0; padding-bottom: 12px; border-bottom: 2px solid #E5E5EA;">
-<div><span style="background-color: #1C1C1E; color: rgb(255, 255, 255); font-family: SF Mono, monospace; font-size: 13px; font-weight: bold; padding: 3px 8px; border-radius: 4px; margin-right: 6px;">&gt;_</span><span style="font-family: -apple-system, sans-serif; font-size: 11px; color: rgb(142, 142, 147); letter-spacing: 1.5px; font-weight: 600;">ROOT</span></div>
-<div style="margin-top: 2px; font-family: 楷体, Kaiti, serif; font-size: 22px; font-weight: bold; color: rgb(44, 44, 46); letter-spacing: 2px;">${title}</div>
-</div>`;
+                return `<section style="margin-top: 37.5px !important; margin-bottom: 25px !important;"><section style="padding-bottom: 12px; border-bottom: 2px solid #E5E5EA;"><section style="font-size: 13px; margin-bottom: 8px;"><span style="background-color: #1C1C1E; color: rgb(255, 255, 255); font-family: SF Mono, monospace; font-size: 13px; font-weight: bold; padding: 3px 8px; border-radius: 4px; margin-right: 6px;">&gt;_</span><span style="font-family: -apple-system, sans-serif; font-size: 11px; color: rgb(142, 142, 147); letter-spacing: 1.5px; font-weight: 600;">ROOT</span></section><section style="font-size: 22px !important; line-height: 1.4;"><span style="font-family: 楷体, Kaiti, serif; font-size: 22px !important; font-weight: bold; color: rgb(44, 44, 46); letter-spacing: 2px;">${title}</span></section></section></section>`;
             });
 
-            // H2 - 二级标题 SECTION
+            // H2 - 二级标题 SECTION（外层margin控制间距，内层padding-bottom控制分割线位置）
             html = html.replace(/^## (.+)$/gm, (match, title) => {
-                return `<div style="margin: 45px 0 32px 0; padding-bottom: 8px; border-bottom: 1.5px solid #E5E5EA;">
-<div><span style="background-color: #1C1C1E; color: rgb(255, 255, 255); font-family: SF Mono, monospace; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-right: 6px;">&gt;_</span><span style="font-family: -apple-system, sans-serif; font-size: 10px; color: rgb(142, 142, 147); letter-spacing: 1px;">SECTION</span></div>
-<div style="margin-top: 2px; font-family: 楷体, Kaiti, serif; font-size: 22px; font-weight: bold; color: rgb(44, 44, 46); letter-spacing: 1.5px;">${title}</div>
-</div>`;
+                return `<section style="margin-top: 37.5px !important; margin-bottom: 25px !important;"><section style="padding-bottom: 8px; border-bottom: 1.5px solid #E5E5EA;"><section style="font-size: 11px; margin-bottom: 8px;"><span style="background-color: #1C1C1E; color: rgb(255, 255, 255); font-family: SF Mono, monospace; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-right: 6px;">&gt;_</span><span style="font-family: -apple-system, sans-serif; font-size: 10px; color: rgb(142, 142, 147); letter-spacing: 1px;">SECTION</span></section><section style="font-size: 22px !important; line-height: 1.4;"><span style="font-family: 楷体, Kaiti, serif; font-size: 22px !important; font-weight: bold; color: rgb(44, 44, 46); letter-spacing: 1.5px;">${title}</span></section></section></section>`;
             });
 
-            // H3 - 三级标题 NODE
+            // H3 - 三级标题 NODE（外层margin控制间距，内层padding-bottom控制分割线位置）
             html = html.replace(/^### (.+)$/gm, (match, title) => {
-                return `<div style="margin: 45px 0 24px 0; padding-bottom: 8px; border-bottom: 1.5px solid #E5E5EA;">
-<div><span style="background-color: #1C1C1E; color: rgb(255, 255, 255); font-family: SF Mono, monospace; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-right: 6px;">&gt;_</span><span style="font-family: -apple-system, sans-serif; font-size: 10px; color: rgb(142, 142, 147); letter-spacing: 1px;">NODE</span></div>
-<div style="margin-top: 2px; font-family: 楷体, Kaiti, serif; font-size: 22px; font-weight: bold; color: rgb(44, 44, 46); letter-spacing: 1px;">${title}</div>
-</div>`;
+                return `<section style="margin-top: 37.5px !important; margin-bottom: 25px !important;"><section style="padding-bottom: 8px; border-bottom: 1.5px solid #E5E5EA;"><section style="font-size: 11px; margin-bottom: 8px;"><span style="background-color: #1C1C1E; color: rgb(255, 255, 255); font-family: SF Mono, monospace; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-right: 6px;">&gt;_</span><span style="font-family: -apple-system, sans-serif; font-size: 10px; color: rgb(142, 142, 147); letter-spacing: 1px;">NODE</span></section><section style="font-size: 22px !important; line-height: 1.4;"><span style="font-family: 楷体, Kaiti, serif; font-size: 22px !important; font-weight: bold; color: rgb(44, 44, 46); letter-spacing: 1px;">${title}</span></section></section></section>`;
             });
 
-            // H4 - 四级标题 ITEM
+            // H4 - 四级标题 ITEM（外层margin控制间距，内层padding-bottom控制分割线位置）
             html = html.replace(/^#### (.+)$/gm, (match, title) => {
-                return `<div style="margin: 45px 0 20px 0; padding-bottom: 6px; border-bottom: 1px solid #E5E5EA;">
-<div><span style="background-color: #1C1C1E; color: rgb(255, 255, 255); font-family: SF Mono, monospace; font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 3px; margin-right: 5px;">&gt;_</span><span style="font-family: -apple-system, sans-serif; font-size: 9px; color: rgb(142, 142, 147); letter-spacing: 0.8px;">ITEM</span></div>
-<div style="margin-top: 2px; font-family: 楷体, Kaiti, serif; font-size: 22px; font-weight: bold; color: rgb(44, 44, 46); letter-spacing: 1px;">${title}</div>
-</div>`;
+                return `<section style="margin-top: 37.5px !important; margin-bottom: 25px !important;"><section style="padding-bottom: 6px; border-bottom: 1px solid #E5E5EA;"><section style="font-size: 10px; margin-bottom: 8px;"><span style="background-color: #1C1C1E; color: rgb(255, 255, 255); font-family: SF Mono, monospace; font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 3px; margin-right: 5px;">&gt;_</span><span style="font-family: -apple-system, sans-serif; font-size: 9px; color: rgb(142, 142, 147); letter-spacing: 0.8px;">ITEM</span></section><section style="font-size: 22px !important; line-height: 1.4;"><span style="font-family: 楷体, Kaiti, serif; font-size: 22px !important; font-weight: bold; color: rgb(44, 44, 46); letter-spacing: 1px;">${title}</span></section></section></section>`;
             });
 
             // H5 - 五级标题
-            html = html.replace(/^##### (.+)$/gm, `<h5 style="font-size: 17px; color: ${t.text}; margin: 28px 0 16px 0; font-weight: 600; font-family: '楷体', 'Kaiti', serif; letter-spacing: 0.5px;">$1</h5>`);
+            html = html.replace(/^##### (.+)$/gm, `<section style="margin-top: 37.5px !important; margin-bottom: 25px !important;"><span style="font-size: 22px !important; color: ${t.text}; font-weight: 600; font-family: '楷体', 'Kaiti', serif; letter-spacing: 0.5px;">$1</span></section>`);
 
             // H6 - 六级标题
-            html = html.replace(/^###### (.+)$/gm, `<h6 style="font-size: 16px; color: ${t.text}; margin: 24px 0 12px 0; font-weight: 500; font-family: '楷体', 'Kaiti', serif; opacity: 0.85;">$1</h6>`);
+            html = html.replace(/^###### (.+)$/gm, `<section style="margin-top: 37.5px !important; margin-bottom: 25px !important;"><span style="font-size: 22px !important; color: ${t.text}; font-weight: 500; font-family: '楷体', 'Kaiti', serif;">$1</span></section>`);
 
-            // 粗体 - 使用参考样式
-            html = html.replace(/\*\*\*(.+?)\*\*\*/g, `<strong><em>$1</em></strong>`);
-            html = html.replace(/\*\*(.+?)\*\*/g, `<strong style="font-weight: 600; color: rgb(28, 28, 30); background: linear-gradient(to top, rgb(229, 229, 234) 35%, transparent 35%); padding: 0 2px; border-radius: 1px;">$1</strong>`);
-            html = html.replace(/\*(.+?)\*/g, `<em style="font-style: italic;">$1</em>`);
-            html = html.replace(/___(.+?)___/g, `<strong><em>$1</em></strong>`);
-            html = html.replace(/__(.+?)__/g, `<strong style="font-weight: 600; color: rgb(28, 28, 30); background: linear-gradient(to top, rgb(229, 229, 234) 35%, transparent 35%); padding: 0 2px; border-radius: 1px;">$1</strong>`);
-            html = html.replace(/_(.+?)_/g, `<em style="font-style: italic;">$1</em>`);
-
-            // 引用块 - 支持多行引用（包括空行）
-            // 收集所有引用块
-            const quoteMatches = [];
-            let match;
-            const quoteRegex = /(?:^&gt; .*$\n?)+/gm;
-            while ((match = quoteRegex.exec(html)) !== null) {
-                quoteMatches.push(match[0]);
-            }
-
-            // 处理每个引用块
-            quoteMatches.forEach((quoteBlock) => {
-                const lines = quoteBlock.trim().split('\n');
-                const content = lines.map(line => line.replace(/^&gt; /, '')).join('<br>');
-                const quoteHtml = `<blockquote style="margin: 25px 0; padding: 12px 15px 12px 18px; border-left: 3px solid rgb(209, 209, 214); background-color: rgb(250, 250, 250); border-radius: 0 6px 6px 0;">
-<p style="font-family: 楷体, Kaiti, STKaiti, serif; font-size: 16px; color: rgb(74, 74, 74); line-height: 1.7; margin: 0; letter-spacing: 1px;">${content}</p>
-</blockquote>`;
-                html = html.replace(quoteBlock, quoteHtml);
-            });
-
-            // 无序列表 - 使用参考样式（单行HTML，避免微信换行）
-            console.log('🔍 处理无序列表前...');
-            html = html.replace(/^[*•-] (.+)$/gm, `<div style="display: flex; align-items: baseline;"><span style="color: rgb(0, 122, 255); font-family: SF Mono, Consolas, monospace; font-size: 13px; font-weight: bold; margin-right: 10px; flex-shrink: 0;">&gt;</span><span style="color: rgb(51, 51, 51); line-height: 1.7;">$1</span></div>`);
-            console.log('✅ 无序列表处理完成');
-
-            // 有序列表 - 使用参考样式（单行HTML，避免微信换行）
-            console.log('🔍 处理有序列表前...');
-            html = html.replace(/^\d+\. (.+)$/gm, (match, content) => {
-                const num = match.match(/^(\d+)\./)[1];
-                const paddedNum = String(num).padStart(2, '0');
-                return `<div style="display: flex; align-items: baseline; margin-bottom: 14px;"><span style="font-family: SF Mono, Consolas, monospace; font-size: 11px; color: rgb(28, 28, 30); background-color: rgb(242, 242, 247); padding: 2px 6px; border-radius: 4px; margin-right: 10px; flex-shrink: 0; font-weight: 500;">${paddedNum}</span><span style="color: rgb(51, 51, 51); line-height: 1.7;">${content}</span></div>`;
-            });
-            console.log('✅ 有序列表处理完成');
+            // 粗体/斜体处理暂时移除，避免冲突
 
             // 链接
             html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, `<a href="$2" style="color: ${t.accent}; text-decoration: underline;">$1</a>`);
 
             // 图片
-            html = html.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, `<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 8px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">`);
+            html = html.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, `<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 8px; margin: 25px 0 0 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">`);
 
-            // 分隔线
-            html = html.replace(/^---+$/gm, `<hr style="border: none; border-top: 2px solid ${t.border}; margin: 25px 0;">`);
-            html = html.replace(/^\*\*\*+$/gm, `<hr style="border: none; border-top: 2px dashed ${t.accent}; margin: 25px 0;">`);
+            // 分隔线 - 使用section嵌套确保微信兼容
+            // 匹配 ---（前后可能有空格）
+            html = html.replace(/^\s*---+\s*$/gm, `<section style="margin: 25px 0 0 0;"><section style="border-top: 2px solid ${t.border};"></section></section>`);
+            // 匹配 ***（前后可能有空格，样式和 --- 一样）
+            html = html.replace(/^\s*\*\*\*+\s*$/gm, `<section style="margin: 25px 0 0 0;"><section style="border-top: 2px solid ${t.border};"></section></section>`);
+            // 匹配 ___（飞书可能使用这个，样式和 --- 一样）
+            html = html.replace(/^\s*___+\s*$/gm, `<section style="margin: 25px 0 0 0;"><section style="border-top: 2px solid ${t.border};"></section></section>`);
 
-            // 段落处理（保护已生成的HTML块和占位符）
-            console.log('🔍 段落处理前，包含代码块section:', html.includes('<section style="margin: 30px'));
-            html = html.split('\n\n').map(para => {
-                if (!para.trim()) return '';
-                // 跳过已经处理过的HTML块（包括代码块section、列表div等）
-                if (para.startsWith('<h') || para.startsWith('<blockquote') || para.startsWith('<pre') ||
-                    para.startsWith('<hr') || para.startsWith('<section') ||
-                    (para.startsWith('<div') && (para.includes('border-bottom') || para.includes('display: flex'))) ||
-                    para.startsWith('__MULTILINE_BLOCK_')) {
-                    return para;
+            // 段落处理 - 简单方法：按行处理
+            console.log('🔍 段落处理前...');
+
+            const lines = html.split('\n');
+            const result = [];
+            let inListBlock = false;
+            let listBlockSpacing = '0px';
+
+            lines.forEach((line, index) => {
+                const trimmed = line.trim();
+
+                // 跳过空行
+                if (!trimmed) return;
+
+                // 检查是否是已处理的HTML块或占位符
+                if (trimmed.startsWith('<h') || trimmed.startsWith('<blockquote') || trimmed.startsWith('<pre') ||
+                    trimmed.startsWith('<hr') || trimmed.startsWith('<section') ||
+                    (trimmed.startsWith('<div') && (trimmed.includes('display: flex') || trimmed.includes('border-bottom'))) ||
+                    trimmed.startsWith('__MULTILINE_BLOCK_') || trimmed.startsWith('__LIST_BLOCK_')) {
+
+                    // 列表项
+                    if (trimmed.startsWith('<div') && trimmed.includes('display: flex')) {
+                        if (!inListBlock) {
+                            inListBlock = true;
+                            listBlockSpacing = (result.length > 0) ? '25px' : '0px';
+                        }
+                        result.push(trimmed);
+                    } else {
+                        inListBlock = false;
+                        result.push(trimmed);
+                    }
+                    return;
                 }
-                const content = para.replace(/\n/g, '<br>');
-                return `<p style="margin: ${t.paragraphMargin} 0;"><span style="font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; color: ${t.text}; text-align: justify; font-family: ${t.fontFamily}; letter-spacing: ${t.letterSpacing}; display: block;">${content}</span></p>`;
-            }).join('\n');
+
+                // 普通文本段落 - 处理粗体/斜体
+                inListBlock = false;
+                const marginTop = (result.length > 0) ? '25px' : '0px';
+
+                // 处理粗体/斜体（使用参考样式）
+                let styledContent = trimmed;
+                styledContent = styledContent.replace(/\*\*\*([^*\n]+)\*\*\*/g, `<strong style="font-weight: 600; color: #1C1C1E; background: linear-gradient(to top, #E5E5EA 35%, transparent 35%); padding: 0 2px; border-radius: 1px;"><em>$1</em></strong>`);
+                styledContent = styledContent.replace(/\*\*([^*\n]+)\*\*/g, `<strong style="font-weight: 600; color: #1C1C1E; background: linear-gradient(to top, #E5E5EA 35%, transparent 35%); padding: 0 2px; border-radius: 1px;">$1</strong>`);
+                styledContent = styledContent.replace(/___([^_\n]+)___/g, `<strong style="font-weight: 600; color: #1C1C1E; background: linear-gradient(to top, #E5E5EA 35%, transparent 35%); padding: 0 2px; border-radius: 1px;"><em>$1</em></strong>`);
+                styledContent = styledContent.replace(/__([^_\n]+)__/g, `<strong style="font-weight: 600; color: #1C1C1E; background: linear-gradient(to top, #E5E5EA 35%, transparent 35%); padding: 0 2px; border-radius: 1px;">$1</strong>`);
+                styledContent = styledContent.replace(/\*([^*\n]+)\*/g, `<em>$1</em>`);
+                styledContent = styledContent.replace(/_([^_\n]+)_/g, `<em>$1</em>`);
+
+                result.push(`<p style="margin: ${marginTop} 0 0 0 !important;"><span style="font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; color: ${t.text}; text-align: justify; font-family: ${t.fontFamily}; letter-spacing: ${t.letterSpacing}; display: block;">${styledContent}</span></p>`);
+            });
+
+            html = result.join('');
+
+            console.log('✅ 段落处理完成');
+
+            // 恢复列表块
+            console.log('🔍 恢复列表块...');
+            listBlocks.forEach((block, index) => {
+                const placeholder = `__LIST_BLOCK_${index}__`;
+                const lines = block.html.trim().split('\n').filter(line => line.trim());
+
+                // 第一个列表项加25px上边距，其他列表项加10px上边距
+                // 使用section包裹确保微信兼容
+                const itemsHtml = lines.map((line, itemIndex) => {
+                    let content = line.replace(/^[*•-] \s*|^\d+\. \s*/, '');
+
+                    // 处理粗体/斜体（使用参考样式）
+                    content = content.replace(/\*\*\*([^*\n]+)\*\*\*/g, `<strong style="font-weight: 600; color: #1C1C1E; background: linear-gradient(to top, #E5E5EA 35%, transparent 35%); padding: 0 2px; border-radius: 1px;"><em>$1</em></strong>`);
+                    content = content.replace(/\*\*([^*\n]+)\*\*/g, `<strong style="font-weight: 600; color: #1C1C1E; background: linear-gradient(to top, #E5E5EA 35%, transparent 35%); padding: 0 2px; border-radius: 1px;">$1</strong>`);
+                    content = content.replace(/___([^_\n]+)___/g, `<strong style="font-weight: 600; color: #1C1C1E; background: linear-gradient(to top, #E5E5EA 35%, transparent 35%); padding: 0 2px; border-radius: 1px;"><em>$1</em></strong>`);
+                    content = content.replace(/__([^_\n]+)__/g, `<strong style="font-weight: 600; color: #1C1C1E; background: linear-gradient(to top, #E5E5EA 35%, transparent 35%); padding: 0 2px; border-radius: 1px;">$1</strong>`);
+                    content = content.replace(/\*([^*\n]+)\*/g, `<em>$1</em>`);
+                    content = content.replace(/_([^_\n]+)_/g, `<em>$1</em>`);
+
+                    const isFirst = itemIndex === 0;
+                    const isLast = itemIndex === lines.length - 1;
+                    let wrapperMargin;
+
+                    if (isFirst && isLast) {
+                        // 只有一项：上边距25px，下边距25px
+                        wrapperMargin = 'margin: 25px 0 25px 0 !important;';
+                    } else if (isFirst) {
+                        // 第一项：上边距25px
+                        wrapperMargin = 'margin: 25px 0 0 0 !important;';
+                    } else if (isLast) {
+                        // 最后一项：上边距10px，下边距25px
+                        wrapperMargin = 'margin: 10px 0 25px 0 !important;';
+                    } else {
+                        // 中间项：上边距10px
+                        wrapperMargin = 'margin: 10px 0 0 0 !important;';
+                    }
+
+                    if (block.type === 'ordered') {
+                        const num = itemIndex + 1;
+                        const paddedNum = String(num).padStart(2, '0');
+                        return `<section style="${wrapperMargin}"><div style="display: flex; align-items: baseline;"><span style="font-family: SF Mono, Consolas, monospace; font-size: 14px; color: rgb(28, 28, 30); background-color: rgb(242, 242, 247); padding: 2px 6px; border-radius: 4px; margin-right: 10px; flex-shrink: 0; font-weight: 500;">${paddedNum}</span><span style="color: rgb(51, 51, 51); line-height: 1.7; font-size: 15px;">${content}</span></div></section>`;
+                    } else {
+                        return `<section style="${wrapperMargin}"><div style="display: flex; align-items: baseline;"><span style="color: rgb(0, 122, 255); font-family: SF Mono, Consolas, monospace; font-size: 16px; font-weight: bold; margin-right: 10px; flex-shrink: 0;">&gt;</span><span style="color: rgb(51, 51, 51); line-height: 1.7; font-size: 15px;">${content}</span></div></section>`;
+                    }
+                }).join('');
+
+                html = html.replaceAll(placeholder, itemsHtml);
+            });
+            console.log('✅ 列表块恢复完成');
 
             return html;
         }
@@ -739,16 +877,17 @@ ${content}
             const contentStyle = `font-family: ${t.fontFamily}; font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; letter-spacing: ${t.letterSpacing !== '0' ? t.letterSpacing : '0px'}; text-align: justify; text-justify: inter-ideograph;`;
 
             const bgStyle = `background: ${t.background};`;
-            const contentWrapper = `<div style="position: relative; z-index: 1;">
-<!-- 正文内容 -->
-${content.replace(/^\s*<p/, '<p').replace(/^<p[^>]*><\/p>\s*/gi, '')}
-<!-- 结尾标识 -->
-<p style="text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid ${t.border}; color: ${t.text}; opacity: 0.4; font-size: 0.85em; letter-spacing: 0.2em;">— 完 —</p>
-</div>`;
+            // 去除第一个元素的上边距，避免顶部空白
+            let contentWithoutTopMargin = content.replace(/^\s*<p style="/, '<p style="margin-top: 0 !important; ');
+            contentWithoutTopMargin = contentWithoutTopMargin.replace(/^<section style="margin: /gm, (match) => {
+                if (contentWithoutTopMargin.indexOf(match) === 0) {
+                    return '<section style="margin-top: 0 !important; ';
+                }
+                return match;
+            });
+            const contentWrapper = `<section style="position: relative; z-index: 1; padding: 0 16px !important; margin-top: 0 !important;">${contentWithoutTopMargin.replace(/^\s*<p/, '<p').replace(/^<p[^>]*><\/p>\s*/gi, '')}<p style="text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid ${t.border}; color: ${t.text}; opacity: 0.4; font-size: 0.85em; letter-spacing: 0.2em;">— 完 —</p></section>`;
 
-            return `<section style="${contentStyle} color: ${t.text}; padding: 0; ${bgStyle} min-height: 100vh; max-width: 677px; margin: 0 auto; position: relative;">
-${contentWrapper}
-</section>`;
+            return `<section style="background-color: #FAFAF9; padding: 15px 0; box-sizing: border-box; border-radius: 8px;"><section style="${contentStyle} color: ${t.text}; max-width: 677px; margin: 0 auto !important; margin-top: 0 !important; padding-top: 0 !important;">${contentWrapper}</section></section>`;
         }
 
         // 更新预览
@@ -794,7 +933,20 @@ ${contentWrapper}
             const markdown = document.getElementById('markdown-input').value;
             const title = document.getElementById('article-title').value;
             const author = document.getElementById('article-author').value;
-            const html = await generateHTML(markdown, currentTheme);
+            let html = await generateHTML(markdown, currentTheme);
+
+            // 根据复选框决定是否去除背景色
+            const keepBackground = document.getElementById('keep-background').checked;
+            if (!keepBackground) {
+                // 只去除外层大背景色，保留所有装饰性背景
+                // 按顺序去除，确保不会误伤其他样式
+                html = html.replace(/background-color:\s*#FAFAF9\s*;?\s*/gi, '');
+                html = html.replace(/background-color:\s*#F6F8FA\s*;?\s*/gi, '');
+                html = html.replace(/background-color:\s*#FFF9F0\s*;?\s*/gi, '');
+                // 对于 rgb() 格式，确保完整匹配整个属性
+                html = html.replace(/background-color:\s*rgb\(250,\s*250,\s*250\)\s*;?\s*/gi, '');
+                html = html.replace(/background-color:\s*rgb\(255,\s*255,\s*255\)\s*;?\s*/gi, '');
+            }
 
             // 检查后端服务是否可用
             showLoadingToast('正在检查服务状态...');
