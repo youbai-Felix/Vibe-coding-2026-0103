@@ -208,7 +208,7 @@
             height: 100%;
             border: none;
             padding: 20px;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-family: 'Menlo', Monaco, Consolas, 'Courier New', monospace;
             font-size: 0.95rem;
             line-height: 1.6;
             resize: none;
@@ -365,6 +365,13 @@
                         <input type="checkbox" id="keep-background" checked style="margin-right: 6px; cursor: pointer;">
                         推送时保留背景色
                     </label>
+                    <label style="display: flex; align-items: center; font-size: 0.9rem; color: #666; cursor: pointer; margin-left: 10px;">
+                        <span style="margin-right: 6px;">图片圆角：</span>
+                        <select id="image-corner" style="padding: 4px 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">
+                            <option value="8px" selected>圆角</option>
+                            <option value="0px">方角</option>
+                        </select>
+                    </label>
                 </div>
             </div>
         </div>
@@ -375,6 +382,9 @@
                     <h3><span class="icon">✏️</span> Markdown 输入</h3>
                     <button class="action-btn secondary" style="padding: 5px 12px; font-size: 0.8rem;" onclick="loadSample()">
                         加载示例
+                    </button>
+                    <button class="action-btn secondary" style="padding: 5px 12px; font-size: 0.8rem;" id="upload-image-btn" onclick="triggerImageUpload()">
+                        📷 上传图片
                     </button>
                 </div>
                 <div class="panel-content">
@@ -471,6 +481,9 @@ function hello() {
         <span id="toast-message">操作成功</span>
     </div>
 
+    <!-- 隐藏的图片上传 input -->
+    <input type="file" id="image-upload-input" accept="image/jpeg,image/png,image/gif" style="display:none">
+
     <!-- 服务状态指示器 -->
     <div class="status-indicator">
         <span class="status-dot" id="status-dot"></span>
@@ -543,7 +556,7 @@ function hello() {
                 openingBg: '',
                 fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif',
                 baseFontSize: '15px',
-                lineHeight: '1.8',
+                lineHeight: '1.7',
                 letterSpacing: '0',
                 paragraphMargin: '25px'
             },
@@ -566,6 +579,8 @@ function hello() {
                 headingBorder: '#4A3B32',
                 headingBorderWidth: '2px',
                 boldColor: '#2D1F1A',
+                boldBg: 'linear-gradient(transparent 60%, #DDEEE0 60%)',
+                dashedBold: 'border-bottom: 2px dashed rgba(31,110,67,0.4); padding-bottom: 3px;',
                 highlightText: '#1F6E43',
                 highlightBgText: '#195C37',
                 highlightBg: '#E8F3EB',
@@ -585,11 +600,11 @@ function hello() {
                 cardRadius: '6px',
                 codeBlockRadius: '6px',
                 openingBg: '#E8F0EA',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif',
-                baseFontSize: '15px',
-                lineHeight: '1.8',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif',
+                baseFontSize: '16px',
+                lineHeight: '1.7',
                 letterSpacing: '0',
-                paragraphMargin: '25px'
+                paragraphMargin: '15px'
             }
         };
 
@@ -598,6 +613,8 @@ function hello() {
         // Markdown 解析器
         async function parseMarkdown(markdown, theme) {
             const t = themes[theme];
+            const boldExtra = t.boldBg ? `background: ${t.boldBg}; padding: 0 4px;` : '';
+            const dashedExtra = t.dashedBold || '';
             let html = markdown;
 
             console.log('🔍 Parsing markdown for theme:', theme);
@@ -622,9 +639,9 @@ function hello() {
                 // 使用section包裹，强制微信保持布局
                 let codeHtml;
                 if (theme === 'chunmu') {
-                    codeHtml = `<section style="margin: 24px 0 0 0; background-color: #F5F0E6; border: 1px solid #EBE3D5; border-radius: 6px; padding: 16px; overflow-x: auto;"><section style="display: block; margin: 0; font-family: Menlo, Monaco, 'Courier New', monospace !important; font-size: 14px; color: #4A3B32; line-height: 1.7;">${displayCode}</section></section>`;
+                    codeHtml = `<section style="margin: 24px 0 0 0; background-color: #F5F0E6; border: 1px solid #EBE3D5; border-radius: 6px; padding: 16px; overflow-x: auto;"><section style="display: block; margin: 0; font-family: 'Menlo', Monaco, Consolas, 'Courier New', monospace !important; font-size: 14px; color: #4A3B32; line-height: 1.45;">${displayCode}</section></section>`;
                 } else {
-                    codeHtml = `<section style="margin: 24px 0 0 0; background-color: ${t.codeBg}; border-radius: ${t.codeBlockRadius}; padding: 20px; overflow-x: auto; box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);"><code style="display: block; margin: 0; font-family: SF Mono, Consolas, Monaco, monospace; font-size: 13px; color: ${t.codeBlockText}; line-height: 1.7;">${displayCode}</code></section>`;
+                    codeHtml = `<section style="margin: 24px 0 0 0; background-color: ${t.codeBg}; border-radius: ${t.codeBlockRadius}; padding: 20px; overflow-x: auto; box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);"><code style="display: block; margin: 0; font-family: 'Menlo', Monaco, Consolas, 'Courier New', monospace; font-size: 14px; color: ${t.codeBlockText}; line-height: 1.7;">${displayCode}</code></section>`;
                 }
                 codeBlocks.push(codeHtml);
                 console.log('✅ 代码块HTML生成完毕');
@@ -634,6 +651,14 @@ function hello() {
             });
             console.log('✅ 代码块处理完成，共找到', codeBlocks.length, '个代码块');
             console.log('🔍 代码块处理后HTML包含占位符:', html.includes('__CODE_BLOCK_0__'));
+
+            // 第1.5步：收集卡片块 [!card]（支持内部多段落，遇到分隔线/标题/其他块则终止）
+            const cardBlocks = [];
+            html = html.replace(/\[!card\]\n([\s\S]*?)\[card\]/g, (match, content) => {
+                const index = cardBlocks.length;
+                cardBlocks.push(content.trim());
+                return `__CARD_BLOCK_${index}__`;
+            });
 
             // 第二步：先处理多行块（提示框、警告框、总结卡片），用占位符保护
             const multiLineBlocks = [];
@@ -674,15 +699,19 @@ function hello() {
             // 第四步：处理引用块（在转义HTML之前），用占位符保护
             console.log('🔍 处理引用块前...');
             const quoteBlocks = [];
-            let quoteMatch;
             // 匹配引用块及其后面的所有空行（> 后不管有没有空格都匹配）
             const quoteRegex = /((?:^>.*$\n?)+)(\n*)/gm;
-            while ((quoteMatch = quoteRegex.exec(html)) !== null) {
+            // 先收集所有匹配，避免 exec + replace 导致 lastIndex 错位
+            const quoteMatches = [...html.matchAll(quoteRegex)];
+            quoteMatches.forEach((match) => {
                 quoteBlocks.push({
-                    content: quoteMatch[1]
+                    content: match[1]
                 });
-                // 替换为占位符+两个换行符（消耗掉所有原始空行，用两个换行符确保段落分割）
-                html = html.replace(quoteMatch[0], `__QUOTE_BLOCK_${quoteBlocks.length - 1}__\n\n`);
+            });
+            // 从后往前替换，避免位置偏移
+            for (let i = quoteMatches.length - 1; i >= 0; i--) {
+                const m = quoteMatches[i];
+                html = html.substring(0, m.index) + `__QUOTE_BLOCK_${i}__\n\n` + html.substring(m.index + m[0].length);
             }
             console.log('✅ 引用块处理完成，共找到', quoteBlocks.length, '个引用块');
 
@@ -707,7 +736,7 @@ function hello() {
                 // 先解码HTML实体，再转义特殊字符
                 const decoded = code.replace(/&#x20;/g, ' ').replace(/&#(\d+);/g, (m, n) => String.fromCharCode(n));
                 const escapedCode = decoded.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                return `<span style="font-family: 'SF Mono', Consolas, Monaco, monospace; font-size: 0.9em; color: ${t.codeText}; background-color: ${t.codeBg}; padding: 2px 6px; border-radius: 4px; margin: 0 2px;">${escapedCode}</span>`;
+                return `<span style="font-family: 'Menlo', Monaco, Consolas, 'Courier New', monospace; font-size: 14px; line-height: 1.4; color: ${t.codeText}; background-color: ${t.codeBg}; padding: 0.2em 0.5em; border-radius: 4px; margin: 0 2px; display: inline-flex; align-items: center; justify-content: center; box-decoration-break: clone; -webkit-box-decoration-break: clone;">${escapedCode}</span>`;
             });
 
             // 第八步：恢复代码块（在HTML转义后，粗体斜体处理前）
@@ -725,16 +754,16 @@ function hello() {
                 const lines = quote.content.trim().split('\n');
                 let content = lines.map(line => line.replace(/^>\s?/, '')).join('<br>');
                 // 处理粗体/斜体/高亮
-                content = content.replace(/\*\*\*([^*\n]+)\*\*\*/g, `<strong style="font-weight: 700; color: ${t.boldColor};"><em>$1</em></strong>`);
-                content = content.replace(/\*\*([^*\n]+)\*\*/g, `<strong style="font-weight: 700; color: ${t.boldColor};">$1</strong>`);
-                content = content.replace(/___([^_\n]+)___/g, `<strong style="font-weight: 700; color: ${t.boldColor};"><em>$1</em></strong>`);
-                content = content.replace(/__([^_\n]+)__/g, `<strong style="font-weight: 700; color: ${t.boldColor};">$1</strong>`);
+                content = content.replace(/\*\*\*([^*\n]+)\*\*\*/g, `<strong style="font-weight: 700; color: ${t.boldColor}; ${boldExtra}"><em>$1</em></strong>`);
+                content = content.replace(/\*\*([^*\n]+)\*\*/g, `<strong style="font-weight: 700; color: ${t.boldColor}; ${boldExtra}">$1</strong>`);
+                content = content.replace(/___([^_\n]+)___/g, `<strong><em>$1</em></strong>`);
+                content = content.replace(/__([^_\n]+)__/g, `<strong>$1</strong>`);
                 content = content.replace(/\*([^*\n]+)\*/g, `<em>$1</em>`);
                 content = content.replace(/_([^_\n]+)_/g, `<em>$1</em>`);
                 content = content.replace(/==([^=\n]+)==/g, `<span style="color: ${t.highlightText};">$1</span>`);
-                content = content.replace(/\+\+([^\+\n]+)\+\+/g, `<span style="color: ${t.highlightBgText}; background-color: ${t.highlightBg}; padding: ${theme === 'chunmu' ? '3px 6px' : '1px 6px'}; border-radius: 4px; font-size: ${theme === 'chunmu' ? '15px' : '13px'}; font-family: SF Mono, Consolas, monospace;">$1</span>`);
+                content = content.replace(/\+\+([^\+\n]+)\+\+/g, `<span style="color: ${t.highlightBgText}; background-color: ${t.highlightBg}; padding: 0.2em 0.5em; border-radius: 4px; font-size: 14px; line-height: 1.4; font-family: 'Menlo', Monaco, Consolas, 'Courier New', monospace; margin: 0 2px; display: inline-flex; align-items: center; justify-content: center; box-decoration-break: clone; -webkit-box-decoration-break: clone;">$1</span>`);
                 // 不添加任何换行符，依靠占位符后面已有的换行符来分割段落
-                const quoteHtml = `<blockquote style="margin: 24px 0 0 0 !important; padding: 16px 20px; border-left: 3px solid ${t.quoteBorder}; border-radius: 0 8px 8px 0;"><p style="font-size: 15px; color: ${t.textLight}; line-height: 1.8; margin: 0;">${content}</p></blockquote>`;
+                const quoteHtml = `<blockquote style="margin: 24px 0 0 0 !important; padding: 16px 20px; border-left: 3px solid ${t.quoteBorder}; border-radius: 0 8px 8px 0;"><p style="font-size: 15px; color: ${t.textLight}; line-height: ${t.lineHeight}; margin: 0;">${content}</p></blockquote>`;
                 html = html.replaceAll(placeholder, quoteHtml);
             });
             console.log('✅ 引用块已恢复');
@@ -756,13 +785,13 @@ function hello() {
                     content = content.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
                     content = content.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
                     // 行内代码
-                    content = content.replace(/`([^`]+)`/g, '<span style="font-family: SF Mono, Consolas, monospace; font-size: 0.9em; color: ' + t.codeText + '; background-color: ' + t.codeBg + '; padding: 2px 6px; border-radius: 4px;">$1</span>');
+                    content = content.replace(/`([^`]+)`/g, '<span style="font-family: Menlo, Monaco, Consolas, Courier New, monospace; font-size: 0.9em; color: ' + t.codeText + '; background-color: ' + t.codeBg + '; padding: 2px 6px; border-radius: 4px;">$1</span>');
                     // 无序列表
                     content = content.replace(/^[*•-] (.+)$/gm, '<span style="display: block; padding-left: 16px; text-indent: -16px;"><span style="color: ' + t.bulletColor + '; margin-right: 6px;">' + t.bulletChar + '</span>$1</span>');
                     // 有序列表
                     content = content.replace(/^\d+\.\s+(.+)$/gm, (m, item) => {
                         const num = m.match(/^\d+/)[0].padStart(2, '0');
-                        return `<span style="display: block; padding-left: 28px; text-indent: -28px;"><span style="font-family: SF Mono, Consolas, monospace; font-size: 12px; color: ${t.numText}; background-color: ${t.numBg}; padding: 1px 5px; border-radius: 3px; margin-right: 8px;">${num}</span>${item}</span>`;
+                        return `<span style="display: block; padding-left: 28px; text-indent: -28px;"><span style="font-family: 'Menlo', Monaco, Consolas, 'Courier New', monospace; font-size: 12px; color: ${t.numText}; background-color: ${t.numBg}; padding: 1px 5px; border-radius: 3px; margin-right: 8px;">${num}</span>${item}</span>`;
                     });
                     // 换行
                     content = content.replace(/\n/g, '<br>');
@@ -812,8 +841,8 @@ function hello() {
                             let itemContent = orderedMatch[2];
                             // 处理加色、高亮、加粗、斜体
                             itemContent = itemContent.replace(/==([^=\n]+)==/g, '<span style="color: ' + t.highlightText + ';">$1</span>');
-                            itemContent = itemContent.replace(/\+\+([^\+\n]+)\+\+/g, '<span style="color: ' + t.highlightBgText + '; background-color: ' + t.highlightBg + '; padding: ' + (theme === 'chunmu' ? '3px 6px' : '1px 6px') + '; border-radius: 4px; font-size: ' + (theme === 'chunmu' ? '15px' : '13px') + '; font-family: SF Mono, Consolas, monospace;">$1</span>');
-                            itemContent = itemContent.replace(/\*\*([^*\n]+)\*\*/g, '<strong style="font-weight: 700; color: ' + t.boldColor + ';">$1</strong>');
+                            itemContent = itemContent.replace(/\+\+([^\+\n]+)\+\+/g, '<span style="color: ' + t.highlightBgText + '; background-color: ' + t.highlightBg + '; padding: 0.2em 0.5em; border-radius: 4px; font-size: 14px; line-height: 1.4; font-family: Menlo, Monaco, Consolas, Courier New, monospace; margin: 0 2px; display: inline-flex; align-items: center; justify-content: center; box-decoration-break: clone; -webkit-box-decoration-break: clone;">$1</span>');
+                            itemContent = itemContent.replace(/\*\*([^*\n]+)\*\*/g, '<strong style="font-weight: 700; color: ' + t.boldColor + '; ' + boldExtra + '">$1</strong>');
                             itemContent = itemContent.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
                             const marginTop = index === 0 ? '0' : '12px';
                             const paddingTop = index === 0 ? '0' : '12px';
@@ -822,15 +851,15 @@ function hello() {
                             const badgeFont = theme === 'chunmu' ? 'font-size: 13px;' : 'font-size: 12px;';
                             const badgeRadius = theme === 'chunmu' ? 'border-radius: 3px;' : 'border-radius: 4px;';
                             const badgeLineHeight = theme === 'chunmu' ? 'line-height: 24px;' : 'line-height: 20px;';
-                            processedContent += `<section style="margin-top: ${marginTop}; padding-top: ${paddingTop}; border-top: ${borderTop};"><section style="display: table; width: 100%;"><section style="display: table-cell; vertical-align: top; width: 36px;"><span style="display: inline-block; ${badgeSize} background-color: ${t.numBg}; color: ${t.numText}; ${badgeFont} font-family: SF Mono, Consolas, monospace; ${badgeRadius} text-align: center; ${badgeLineHeight}">${num}</span></section><section style="display: table-cell; vertical-align: top;"><span style="color: ${t.text}; line-height: 1.8; font-size: 14px; letter-spacing: 0.5px; text-align: justify;">${itemContent}</span></section></section></section>`;
+                            processedContent += `<section style="margin-top: ${marginTop}; padding-top: ${paddingTop}; border-top: ${borderTop};"><section style="display: table; width: 100%;"><section style="display: table-cell; vertical-align: top; width: 36px;"><span style="display: inline-block; ${badgeSize} background-color: ${t.numBg}; color: ${t.numText}; ${badgeFont} font-family: 'Menlo', Monaco, Consolas, 'Courier New', monospace; ${badgeRadius} text-align: center; ${badgeLineHeight}">${num}</span></section><section style="display: table-cell; vertical-align: top;"><span style="color: ${t.text}; line-height: 1.8; font-size: 14px; letter-spacing: 0.5px; text-align: justify;">${itemContent}</span></section></section></section>`;
                         }
                         // 检测无序列表
                         else if (trimmed.match(/^[-*•]\s+(.+)$/)) {
                             isList = true;
                             let itemContent = trimmed.replace(/^[-*•]\s+/, '');
                             itemContent = itemContent.replace(/==([^=\n]+)==/g, '<span style="color: ' + t.highlightText + ';">$1</span>');
-                            itemContent = itemContent.replace(/\+\+([^\+\n]+)\+\+/g, '<span style="color: ' + t.highlightBgText + '; background-color: ' + t.highlightBg + '; padding: ' + (theme === 'chunmu' ? '3px 6px' : '1px 6px') + '; border-radius: 4px; font-size: ' + (theme === 'chunmu' ? '15px' : '13px') + '; font-family: SF Mono, Consolas, monospace;">$1</span>');
-                            itemContent = itemContent.replace(/\*\*([^*\n]+)\*\*/g, '<strong style="font-weight: 700; color: ' + t.boldColor + ';">$1</strong>');
+                            itemContent = itemContent.replace(/\+\+([^\+\n]+)\+\+/g, '<span style="color: ' + t.highlightBgText + '; background-color: ' + t.highlightBg + '; padding: 0.2em 0.5em; border-radius: 4px; font-size: 14px; line-height: 1.4; font-family: Menlo, Monaco, Consolas, Courier New, monospace; margin: 0 2px; display: inline-flex; align-items: center; justify-content: center; box-decoration-break: clone; -webkit-box-decoration-break: clone;">$1</span>');
+                            itemContent = itemContent.replace(/\*\*([^*\n]+)\*\*/g, '<strong style="font-weight: 700; color: ' + t.boldColor + '; ' + boldExtra + '">$1</strong>');
                             itemContent = itemContent.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
                             const marginTop = index === 0 ? '0' : '12px';
                             const paddingTop = index === 0 ? '0' : '12px';
@@ -861,6 +890,32 @@ function hello() {
             });
             console.log('✅ 多行块已提前恢复');
 
+            // 恢复卡片块
+            cardBlocks.forEach((blockContent, index) => {
+                const placeholder = `__CARD_BLOCK_${index}__`;
+                const lines = blockContent.split('\n');
+                const title = lines[0];
+                const contentLines = lines.slice(1).filter(l => l.trim());
+
+                const processInline = (text) => {
+                    text = text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+                    text = text.replace(/\*\*([^*\n]+)\*\*/g, '<strong style="font-weight: 700; color: #2D1F1A; background: linear-gradient(transparent 60%, #DDEEE0 60%); padding: 0 4px;">$1</strong>');
+                    text = text.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+                    text = text.replace(/___([^_\n]+)___/g, '<strong><em>$1</em></strong>');
+                    text = text.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+                    text = text.replace(/==([^=\n]+)==/g, '<span style="color: #1F6E43;">$1</span>');
+                    return text;
+                };
+
+                let cardHtml = `<section style="margin: 24px 0; background: #FAF9F6; border: 1px solid #EBE3D5; border-radius: 12px; padding: 24px;"><section style="margin: 0 !important; line-height: 1.8; font-size: 16px; color: ${t.text};"><strong style="color: #1F6E43; display: block; margin-bottom: 8px;">● ${title}</strong>`;
+                contentLines.forEach((line) => {
+                    cardHtml += `</section><section style="margin-top: 15px !important; line-height: 1.8; font-size: 16px; color: ${t.text};">${processInline(line.trim())}`;
+                });
+                cardHtml += `</section></section>`;
+                html = html.replaceAll(placeholder, cardHtml);
+            });
+            console.log('✅ 卡片块恢复完成');
+
             // 恢复提示框块
             tipBoxBlocks.forEach((block, index) => {
                 const placeholder = `__TIPBOX_BLOCK_${index}__`;
@@ -882,46 +937,97 @@ function hello() {
             });
             console.log('✅ 提示框块恢复完成');
 
-            // 开头语（!! 前缀）- 红色小字标签
+            // 开头语（!! 前缀）- 居中标签卡片
             html = html.replace(/^!! (.+)$/gm, (match, text) => {
                 if (t.openingBg) {
-                    return `<section style="margin-top: 25px !important; margin-bottom: 25px !important; text-align: center;"><span style="font-size: 12px; font-weight: 700; color: ${t.accent}; background-color: ${t.openingBg}; border: 1px solid ${t.accent}; padding: 4px 12px; letter-spacing: 2px;">${text}</span></section>`;
+                    return `<section style="margin: 25px auto !important; text-align: center;"><section style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; background-color: #F0F7F2; border: 1px solid #DDEEE0; border-radius: 8px; padding: 4px 16px; box-shadow: 0 2px 8px -2px rgba(31,110,67,0.03);"><section style="display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; border: 2px solid #1F6E43; border-radius: 50%; font-size: 0; line-height: 0;"><section style="width: 6px; height: 6px; background-color: #1F6E43; border-radius: 50%;">&nbsp;</section></section><span style="font-size: 12.5px; font-weight: 500; color: #1F6E43; letter-spacing: 0.1em;">${text}</span></section></section>`;
                 } else {
                     return `<section style="margin-top: 25px !important; margin-bottom: 25px !important;"><span style="font-size: 10px; font-weight: 700; color: ${t.accent}; letter-spacing: 2px;">${text}</span></section>`;
                 }
             });
 
+            // 辅助函数：渲染标题数字（匹配 "1. " "2. " 等数字前缀）
+            function renderTitleNum(title, headingColor) {
+                const numMatch = title.match(/^(\d+)\.\s*(.*)$/);
+                if (numMatch) {
+                    if (theme === 'chunmu') {
+                        const num = numMatch[1].padStart(2, '0');
+                        return `<span style="color: #1F6E43; font-family: Georgia, 'Songti SC', 'STSong', 'SimSun', serif; font-size: 16px; opacity: 0.7;">${num} / </span>${numMatch[2]}`;
+                    }
+                    return `<span style="color: ${t.boldColor};">${numMatch[1]}.</span><span style="color: ${headingColor};"> ${numMatch[2]}</span>`;
+                }
+                return `<span style="color: ${headingColor};">${title}</span>`;
+            }
+
             // H1 - 主标题
             html = html.replace(/^# (.+)$/gm, (match, title) => {
-                return `<section style="margin-top: 35px !important; padding-top: 30px; border-top: ${t.headingBorderWidth} solid ${t.headingBorder}; margin-bottom: 24px !important;"><section style="font-size: 20px !important; line-height: 1.4;"><span style="font-weight: 700; color: ${t.headingColor};">${title}</span></section></section>`;
+                if (theme === 'chunmu') {
+                    return `<section style="margin-top: 20px !important; padding-top: 45px; border-top: 1px solid #D6D0C4; margin-bottom: 20px !important;"><section style="font-size: 21px; font-weight: 700; color: #4A3B32; line-height: 1.4; font-family: Georgia, 'Songti SC', 'STSong', 'SimSun', serif;">${renderTitleNum(title, '#4A3B32')}</section></section>`;
+                }
+                return `<section style="margin-top: 35px !important; padding-top: 30px; border-top: ${t.headingBorderWidth} solid ${t.headingBorder}; margin-bottom: 24px !important;"><section style="font-size: 21px !important; line-height: 1.4; font-family: Georgia, 'Songti SC', 'STSong', 'SimSun', serif;"><span style="font-weight: 700;">${renderTitleNum(title, t.headingColor)}</span></section></section>`;
             });
 
             // H2 - 二级标题
             html = html.replace(/^## (.+)$/gm, (match, title) => {
-                return `<section style="margin-top: 35px !important; padding-top: 30px; border-top: ${t.headingBorderWidth} solid ${t.headingBorder}; margin-bottom: 20px !important;"><section style="font-size: 16px !important; line-height: 1.4;"><span style="font-weight: 700; color: ${t.headingColor};">${title}</span></section></section>`;
+                if (theme === 'chunmu') {
+                    return `<section style="margin: 30px 0 15px;"><section style="font-size: 18px; font-weight: 600; color: #1F6E43; line-height: 1.4; font-family: Georgia, 'Songti SC', 'STSong', 'SimSun', serif;">${renderTitleNum(title, '#1F6E43')}</section></section>`;
+                }
+                return `<section style="margin-top: 35px !important; padding-top: 30px; border-top: ${t.headingBorderWidth} solid ${t.headingBorder}; margin-bottom: 20px !important;"><section style="font-size: 18px !important; line-height: 1.4; font-family: Georgia, 'Songti SC', 'STSong', 'SimSun', serif;"><span style="font-weight: 700;">${renderTitleNum(title, t.headingColor)}</span></section></section>`;
             });
 
             // H3 - 三级标题
             html = html.replace(/^### (.+)$/gm, (match, title) => {
-                return `<section style="margin-top: 35px !important; padding-top: 30px; border-top: ${t.headingBorderWidth} solid ${t.headingBorder}; margin-bottom: 16px !important;"><section style="font-size: 15px !important; line-height: 1.5;"><span style="font-weight: 700; color: ${t.headingColor};">${title}</span></section></section>`;
+                if (theme === 'chunmu') {
+                    return `<section style="margin: 25px 0 12px;"><section style="font-size: 17px; font-weight: 600; color: #4A3B32; line-height: 1.4;">${renderTitleNum(title, '#4A3B32')}</section></section>`;
+                }
+                return `<section style="margin-top: 35px !important; padding-top: 30px; border-top: ${t.headingBorderWidth} solid ${t.headingBorder}; margin-bottom: 16px !important;"><section style="font-size: 15px !important; line-height: 1.5;"><span style="font-weight: 700;">${renderTitleNum(title, t.headingColor)}</span></section></section>`;
             });
 
             // H4 - 四级标题
             html = html.replace(/^#### (.+)$/gm, (match, title) => {
-                return `<section style="margin-top: 35px !important; padding-top: 30px; border-top: ${t.headingBorderWidth} solid ${t.headingBorder}; margin-bottom: 12px !important;"><span style="font-size: 14px; font-weight: 700; color: ${t.headingColor};">${title}</span></section>`;
+                if (theme === 'chunmu') {
+                    return `<section style="margin: 20px 0 10px;"><section style="font-size: 16px; font-weight: 600; color: #4A3B32; line-height: 1.4;">${renderTitleNum(title, '#4A3B32')}</section></section>`;
+                }
+                return `<section style="margin-top: 35px !important; padding-top: 30px; border-top: ${t.headingBorderWidth} solid ${t.headingBorder}; margin-bottom: 12px !important;"><span style="font-size: 14px; font-weight: 700;">${renderTitleNum(title, t.headingColor)}</span></section>`;
             });
 
             // H5 - 五级标题
-            html = html.replace(/^##### (.+)$/gm, (match) => {
-                return `<section style="margin-top: 35px !important; padding-top: 30px; border-top: ${t.headingBorderWidth} solid ${t.headingBorder}; margin-bottom: 12px !important;"><span style="font-size: 14px; font-weight: 600; color: ${t.text};">${match}</span></section>`;
+            html = html.replace(/^##### (.+)$/gm, (match, title) => {
+                if (theme === 'chunmu') {
+                    return `<section style="margin: 18px 0 8px;"><section style="font-size: 15px; font-weight: 600; color: #4A3B32; line-height: 1.4;">${renderTitleNum(title, '#4A3B32')}</section></section>`;
+                }
+                const numMatch = title.match(/^(\d+\.\s*)(.*)$/);
+                const content = numMatch ? `<span style="color: ${t.boldColor};">${numMatch[1]}</span><span style="color: ${t.text};">${numMatch[2]}</span>` : `<span style="color: ${t.text};">${title}</span>`;
+                return `<section style="margin-top: 35px !important; padding-top: 30px; border-top: ${t.headingBorderWidth} solid ${t.headingBorder}; margin-bottom: 12px !important;"><span style="font-size: 14px; font-weight: 600;">${content}</span></section>`;
             });
 
             // H6 - 六级标题
-            html = html.replace(/^###### (.+)$/gm, (match) => {
-                return `<section style="margin-top: 35px !important; padding-top: 30px; border-top: ${t.headingBorderWidth} solid ${t.headingBorder}; margin-bottom: 10px !important;"><span style="font-size: 13px; font-weight: 600; color: ${t.endColor};">${match}</span></section>`;
+            html = html.replace(/^###### (.+)$/gm, (match, title) => {
+                if (theme === 'chunmu') {
+                    return `<section style="margin: 16px 0 6px;"><section style="font-size: 14px; font-weight: 600; color: #4A3B32; line-height: 1.4;">${renderTitleNum(title, '#4A3B32')}</section></section>`;
+                }
+                const numMatch = title.match(/^(\d+\.\s*)(.*)$/);
+                const content = numMatch ? `<span style="color: ${t.boldColor};">${numMatch[1]}</span><span style="color: ${t.endColor};">${numMatch[2]}</span>` : `<span style="color: ${t.endColor};">${title}</span>`;
+                return `<section style="margin-top: 35px !important; padding-top: 30px; border-top: ${t.headingBorderWidth} solid ${t.headingBorder}; margin-bottom: 10px !important;"><span style="font-size: 13px; font-weight: 600;">${content}</span></section>`;
             });
 
             // 粗体/斜体处理暂时移除，避免冲突
+
+            // 图片（必须在链接之前处理，否则链接正则会吃掉图片语法）
+            const imageCorner = document.getElementById('image-corner')?.value || '8px';
+            html = html.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, (match, alt, src) => {
+                if (theme === 'chunmu') {
+                    let imgHtml = `<section style="margin: 15px 0; text-align: center;"><img src="${src}" alt="${alt}" style="max-width: 100%; height: auto; border-radius: 4px;">`;
+                    if (alt) {
+                        // 编码冒号防止被 URL 自动识别正则匹配
+                        const safeAlt = alt.replace(/:/g, '&#58;');
+                        imgHtml += `<section style="font-size: 12px; color: #8c8c8c; text-align: center; margin-top: 8px;">${safeAlt}</section>`;
+                    }
+                    imgHtml += `</section>`;
+                    return imgHtml;
+                }
+                return `<img src="${src}" alt="${alt}" style="max-width: 100%; height: auto; border-radius: ${imageCorner}; margin: 25px 0 0 0;">`;
+            });
 
             // 链接（微信公众号不支持<a>外链，改为文字+脚注形式）
             html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, (match, text, url) => {
@@ -932,11 +1038,21 @@ function hello() {
                 return `<span style="color: ${t.accent}; text-decoration: underline;">${text}</span>`;
             });
 
-            // 图片
-            html = html.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, `<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 8px; margin: 25px 0 0 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">`);
+            // URL 自动识别（http/https 开头的裸链接）
+            html = html.replace(/(?<!["\(=])(https?:\/\/[^\s<>\)]+)/g, (match, url) => {
+                if (theme === 'chunmu') {
+                    return `<span style="font-family: 'Menlo', Monaco, Consolas, 'Courier New', monospace; font-size: 14px; background-color: #f5f5f5; padding: 2px 6px; border-radius: 3px; color: #1F6E43; word-break: break-all;">${url}</span>`;
+                }
+                return `<span style="font-family: 'Menlo', Monaco, Consolas, 'Courier New', monospace; font-size: 14px; background-color: #f5f5f5; padding: 2px 6px; border-radius: 3px; color: #d14; word-break: break-all;">${url}</span>`;
+            });
 
             // 分隔线 - 实线全宽
-            html = html.replace(/^\s*---+\s*$/gm, `<section style="margin: 40px 0;"><section style="border-top: 1px solid ${t.headingBorder};"></section></section>`);
+            html = html.replace(/^\s*---+\s*$/gm, (match) => {
+                if (theme === 'chunmu') {
+                    return `<section style="margin: 30px 0;"><section style="border-top: 1px solid #eee;"></section></section>`;
+                }
+                return `<section style="margin: 40px 0;"><section style="border-top: 1px solid ${t.headingBorder};"></section></section>`;
+            });
             html = html.replace(/^\s*\*\*\*+\s*$/gm, `<section style="margin: 40px 0;"><section style="border-top: 1px solid ${t.headingBorder};"></section></section>`);
             html = html.replace(/^\s*___+\s*$/gm, `<section style="margin: 40px 0;"><section style="border-top: 1px solid ${t.headingBorder};"></section></section>`);
 
@@ -957,6 +1073,7 @@ function hello() {
                 // 检查是否是已处理的HTML块或占位符
                 if (trimmed.startsWith('<h') || trimmed.startsWith('<blockquote') || trimmed.startsWith('<pre') ||
                     trimmed.startsWith('<hr') || trimmed.startsWith('<section') ||
+                    trimmed.startsWith('<img') ||
                     (trimmed.startsWith('<div') && (trimmed.includes('display: flex') || trimmed.includes('border-bottom'))) ||
                     trimmed.startsWith('__MULTILINE_BLOCK_') || trimmed.startsWith('__LIST_BLOCK_')) {
 
@@ -976,23 +1093,23 @@ function hello() {
 
                 // 普通文本段落 - 处理粗体/斜体
                 inListBlock = false;
-                const marginTop = (result.length > 0) ? '25px' : '0px';
+                const marginTop = (result.length > 0) ? t.paragraphMargin : '0px';
 
                 // 处理粗体/斜体（使用参考样式）
                 let styledContent = trimmed;
-                styledContent = styledContent.replace(/\*\*\*([^*\n]+)\*\*\*/g, `<strong style="font-weight: 700; color: ${t.boldColor};"><em>$1</em></strong>`);
-                styledContent = styledContent.replace(/\*\*([^*\n]+)\*\*/g, `<strong style="font-weight: 700; color: ${t.boldColor};">$1</strong>`);
-                styledContent = styledContent.replace(/___([^_\n]+)___/g, `<strong style="font-weight: 700; color: ${t.boldColor};"><em>$1</em></strong>`);
-                styledContent = styledContent.replace(/__([^_\n]+)__/g, `<strong style="font-weight: 700; color: ${t.boldColor};">$1</strong>`);
+                styledContent = styledContent.replace(/\*\*\*([^*\n]+)\*\*\*/g, `<strong style="font-weight: 700; color: ${t.boldColor}; ${boldExtra}"><em>$1</em></strong>`);
+                styledContent = styledContent.replace(/\*\*([^*\n]+)\*\*/g, `<strong style="font-weight: 700; color: ${t.boldColor}; ${boldExtra}">$1</strong>`);
+                styledContent = styledContent.replace(/___([^_\n]+)___/g, `<strong><em>$1</em></strong>`);
+                styledContent = styledContent.replace(/__([^_\n]+)__/g, `<strong>$1</strong>`);
                 styledContent = styledContent.replace(/\*([^*\n]+)\*/g, `<em>$1</em>`);
                 styledContent = styledContent.replace(/_([^_\n]+)_/g, `<em>$1</em>`);
 
                 // 加色处理（==text== → 红色文字，在高亮之前处理以支持 ++==嵌套==++）
                 styledContent = styledContent.replace(/==([^=\n]+)==/g, `<span style="color: ${t.highlightText};">$1</span>`);
                 // 高亮处理（++text++ → 红字粉底等宽）
-                styledContent = styledContent.replace(/\+\+([^\+\n]+)\+\+/g, `<span style="color: ${t.highlightBgText}; background-color: ${t.highlightBg}; padding: ${theme === 'chunmu' ? '3px 6px' : '1px 6px'}; border-radius: 4px; font-size: ${theme === 'chunmu' ? '15px' : '13px'}; font-family: SF Mono, Consolas, monospace;">$1</span>`);
+                styledContent = styledContent.replace(/\+\+([^\+\n]+)\+\+/g, `<span style="color: ${t.highlightBgText}; background-color: ${t.highlightBg}; padding: 0.2em 0.5em; border-radius: 4px; font-size: 14px; line-height: 1.4; font-family: 'Menlo', Monaco, Consolas, 'Courier New', monospace; margin: 0 2px; display: inline-flex; align-items: center; justify-content: center; box-decoration-break: clone; -webkit-box-decoration-break: clone;">$1</span>`);
 
-                result.push(`<p style="margin: ${marginTop} 0 0 0 !important;"><span style="font-size: 15px; line-height: 1.8; color: ${t.text}; text-align: justify; font-family: ${t.fontFamily}; display: block;">${styledContent}</span></p>`);
+                result.push(`<p style="margin: ${marginTop} 0 0 0 !important;"><span style="font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; color: ${t.text}; text-align: justify; font-family: ${t.fontFamily}; display: block;">${styledContent}</span></p>`);
             });
 
             html = result.join('');
@@ -1011,17 +1128,17 @@ function hello() {
                     let content = line.replace(/^[*•-] \s*|^\d+\. \s*/, '');
 
                     // 处理粗体/斜体（大聪明风格）
-                    content = content.replace(/\*\*\*([^*\n]+)\*\*\*/g, `<strong style="font-weight: 700; color: ${t.boldColor};"><em>$1</em></strong>`);
-                    content = content.replace(/\*\*([^*\n]+)\*\*/g, `<strong style="font-weight: 700; color: ${t.boldColor};">$1</strong>`);
-                    content = content.replace(/___([^_\n]+)___/g, `<strong style="font-weight: 700; color: ${t.boldColor};"><em>$1</em></strong>`);
-                    content = content.replace(/__([^_\n]+)__/g, `<strong style="font-weight: 700; color: ${t.boldColor};">$1</strong>`);
+                    content = content.replace(/\*\*\*([^*\n]+)\*\*\*/g, `<strong style="font-weight: 700; color: ${t.boldColor}; ${boldExtra}"><em>$1</em></strong>`);
+                    content = content.replace(/\*\*([^*\n]+)\*\*/g, `<strong style="font-weight: 700; color: ${t.boldColor}; ${boldExtra}">$1</strong>`);
+                    content = content.replace(/___([^_\n]+)___/g, `<strong><em>$1</em></strong>`);
+                    content = content.replace(/__([^_\n]+)__/g, `<strong>$1</strong>`);
                     content = content.replace(/\*([^*\n]+)\*/g, `<em>$1</em>`);
                     content = content.replace(/_([^_\n]+)_/g, `<em>$1</em>`);
 
                     // 加色处理
                     content = content.replace(/==([^=\n]+)==/g, `<span style="color: ${t.highlightText};">$1</span>`);
                     // 高亮处理
-                    content = content.replace(/\+\+([^\+\n]+)\+\+/g, `<span style="color: ${t.highlightBgText}; background-color: ${t.highlightBg}; padding: ${theme === 'chunmu' ? '3px 6px' : '1px 6px'}; border-radius: 4px; font-size: ${theme === 'chunmu' ? '15px' : '13px'}; font-family: SF Mono, Consolas, monospace;">$1</span>`);
+                    content = content.replace(/\+\+([^\+\n]+)\+\+/g, `<span style="color: ${t.highlightBgText}; background-color: ${t.highlightBg}; padding: 0.2em 0.5em; border-radius: 4px; font-size: 14px; line-height: 1.4; font-family: 'Menlo', Monaco, Consolas, 'Courier New', monospace; margin: 0 2px; display: inline-flex; align-items: center; justify-content: center; box-decoration-break: clone; -webkit-box-decoration-break: clone;">$1</span>`);
 
                     const isFirst = itemIndex === 0;
                     const isLast = itemIndex === lines.length - 1;
@@ -1044,8 +1161,21 @@ function hello() {
                     if (block.type === 'ordered') {
                         const numMatch = line.match(/^(\d+)\./);
                         const num = numMatch ? parseInt(numMatch[1]) : (itemIndex + 1);
-                        return `<section style="${wrapperStyle}"><div style="display: flex; align-items: flex-start;"><span style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; background-color: ${t.numBg}; color: ${t.numText}; font-size: 12px; font-family: SF Mono, Consolas, monospace; border-radius: 4px; flex-shrink: 0; margin-right: 10px; margin-top: 4px;">${num}</span><span style="color: ${t.text}; line-height: 1.7; font-size: 14px; flex: 1; min-width: 0;">${content}</span></div></section>`;
+                        if (theme === 'chunmu') {
+                            const isLastItem = itemIndex === lines.length - 1;
+                            const chunmuOrderedStyle = isFirst ? 'margin: 15px 0 0 0;' : isLastItem ? 'margin: 0 0 15px 0;' : 'margin: 18px 0 0 0;';
+                            return `<section style="${chunmuOrderedStyle}"><span style="font-weight: 700; color: #1F6E43; font-size: 16px; margin-right: 5px;">${num}.</span><span style="color: ${t.text};">${content}</span></section>`;
+                        }
+                        return `<section style="${wrapperStyle}"><div style="display: flex; align-items: flex-start;"><span style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; background-color: ${t.numBg}; color: ${t.numText}; font-size: 12px; font-family: 'Menlo', Monaco, Consolas, 'Courier New', monospace; border-radius: 4px; flex-shrink: 0; margin-right: 10px; margin-top: 4px;">${num}</span><span style="color: ${t.text}; line-height: 1.7; font-size: 14px; flex: 1; min-width: 0;">${content}</span></div></section>`;
                     } else {
+                        if (theme === 'chunmu') {
+                            const chunmuWrapperStyle = isFirst && isLast
+                                ? 'padding: 16px 0; margin: 0 0 0 0;'
+                                : isFirst ? 'padding: 16px 0; border-bottom: 1px dashed #E8E3D9; margin: 0 0 0 0;'
+                                : isLast ? 'padding: 16px 0; margin: 0;'
+                                : 'padding: 16px 0; border-bottom: 1px dashed #E8E3D9; margin: 0;';
+                            return `<section style="${chunmuWrapperStyle}"><div style="display: flex; align-items: flex-start; gap: 12px;"><span style="color: #1F6E43; font-size: 10px; margin-top: 6px; flex-shrink: 0;">■</span><span style="color: ${t.text}; font-size: 14.5px; line-height: 1.625; flex: 1; min-width: 0;">${content}</span></div></section>`;
+                        }
                         return `<section style="${wrapperStyle}"><div style="display: flex; align-items: baseline;"><span style="color: ${t.bulletColor}; font-size: 14px; line-height: 1; margin-right: 8px; flex-shrink: 0;">${t.bulletChar}</span><span style="color: ${t.text}; line-height: 1.7; font-size: 14px; flex: 1; min-width: 0;">${content}</span></div></section>`;
                     }
                 }).join('');
@@ -1058,7 +1188,15 @@ function hello() {
             html = html.replace(/==([^=\n]+)==/g, `<span style="color: ${t.highlightText};">$1</span>`);
 
             // 全局高亮处理（++text++ → 红字粉底等宽）
-            html = html.replace(/\+\+([^\+\n]+)\+\+/g, `<span style="color: ${t.highlightBgText}; background-color: ${t.highlightBg}; padding: ${theme === 'chunmu' ? '3px 6px' : '1px 6px'}; border-radius: 4px; font-size: ${theme === 'chunmu' ? '15px' : '13px'}; font-family: SF Mono, Consolas, monospace;">$1</span>`);
+            html = html.replace(/\+\+([^\+\n]+)\+\+/g, `<span style="color: ${t.highlightBgText}; background-color: ${t.highlightBg}; padding: 0.2em 0.5em; border-radius: 4px; font-size: 14px; line-height: 1.4; font-family: 'Menlo', Monaco, Consolas, 'Courier New', monospace; margin: 0 2px; display: inline-flex; align-items: center; justify-content: center; box-decoration-break: clone; -webkit-box-decoration-break: clone;">$1</span>`);
+
+            // 盘古之白：中文与英文/数字之间自动加空格（不影响有序列表序号）
+            html = html.replace(/>([^<]+)</g, (match, text) => {
+                let spaced = text;
+                spaced = spaced.replace(/([\u4e00-\u9fa5])([a-zA-Z0-9])/g, '$1 $2');
+                spaced = spaced.replace(/([a-zA-Z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
+                return `>${spaced}<`;
+            });
 
             return html;
         }
@@ -1092,21 +1230,36 @@ function hello() {
         }
 
         // 生成完整的 HTML
-        async function generateHTML(markdown, theme) {
+        async function generateHTML(markdown, theme, forWechat = false) {
             const title = document.getElementById('article-title').value;
             const author = document.getElementById('article-author').value;
             const t = themes[theme];
 
+            // 移动端优化：推送/复制时使用更小的行距
+            let origFontSize, origLineHeight;
+            if (forWechat) {
+                origFontSize = t.baseFontSize;
+                origLineHeight = t.lineHeight;
+                if (theme === 'chunmu') t.baseFontSize = '15px';
+                t.lineHeight = '1.6';
+            }
+
             const content = await parseMarkdown(markdown, theme);
 
-            const contentStyle = `font-family: ${t.fontFamily}; font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; letter-spacing: ${t.letterSpacing !== '0' ? t.letterSpacing : '0px'}; text-align: justify; text-justify: inter-ideograph;`;
+            // 恢复原始值，不影响预览
+            if (forWechat) {
+                t.baseFontSize = origFontSize;
+                t.lineHeight = origLineHeight;
+            }
+
+            const contentStyle = `font-family: ${t.fontFamily}; font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; letter-spacing: ${t.letterSpacing !== '0' ? t.letterSpacing : '0px'}; text-align: left;`;
 
             const bgStyle = `background: ${t.background};`;
             // 去除第一个元素的上边距，避免顶部空白
             let contentWithoutTopMargin = content.replace(/^\s*<p style="/, '<p style="margin-top: 0 !important; ');
-            const contentWrapper = `<section style="position: relative; z-index: 1; padding: 1px 20px 0 20px !important; margin-top: 0 !important;">${contentWithoutTopMargin.replace(/^\s*<p/, '<p').replace(/^<p[^>]*><\/p>\s*/gi, '')}<p style="text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px dotted ${t.endBorder}; color: ${t.endColor}; font-size: 12px; letter-spacing: 0.3em;">— END —</p></section>`;
+            const contentWrapper = `<section style="position: relative; z-index: 1; padding: 1px 15px 0 15px !important; margin-top: 0 !important;">${contentWithoutTopMargin.replace(/^\s*<p/, '<p').replace(/^<p[^>]*><\/p>\s*/gi, '')}<p style="text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px dotted ${t.endBorder}; color: ${t.endColor}; font-size: 12px; letter-spacing: 0.3em;">— END —</p></section>`;
 
-            return `<section style="background-color: ${t.background}; padding: 0 0 32px 0; box-sizing: border-box;"><section style="${contentStyle} color: ${t.text}; max-width: 677px; margin: 0 auto !important; margin-top: 0 !important; padding-top: 0 !important;">${contentWrapper}</section></section>`;
+            return `<section style="background-color: ${t.background}; padding: 0 0 32px 0; box-sizing: border-box;"><section style="${contentStyle} color: ${t.text}; max-width: 680px; margin: 0 auto !important; margin-top: 0 !important; padding-top: 0 !important;">${contentWrapper}</section></section>`;
         }
 
         // 更新预览
@@ -1134,7 +1287,7 @@ function hello() {
         // 复制 HTML
         async function copyHTML() {
             const markdown = document.getElementById('markdown-input').value;
-            const html = await generateHTML(markdown, currentTheme);
+            const html = await generateHTML(markdown, currentTheme, true);
 
             console.log('📋 复制的 HTML 内容:');
             console.log(html.substring(0, 1000));
@@ -1152,7 +1305,7 @@ function hello() {
             const markdown = document.getElementById('markdown-input').value;
             const title = document.getElementById('article-title').value;
             const author = document.getElementById('article-author').value;
-            let html = await generateHTML(markdown, currentTheme);
+            let html = await generateHTML(markdown, currentTheme, true);
 
             // 根据复选框决定是否去除背景色
             const keepBackground = document.getElementById('keep-background').checked;
@@ -1215,7 +1368,7 @@ function hello() {
             const markdown = document.getElementById('markdown-input').value;
             const title = document.getElementById('article-title').value;
             const author = document.getElementById('article-author').value;
-            const html = await generateHTML(markdown, currentTheme);
+            const html = await generateHTML(markdown, currentTheme, true);
 
             // 构建 API 请求体
             const requestBody = {
@@ -1398,9 +1551,101 @@ curl -X POST \\
             showToast('示例内容已加载！');
         }
 
+        // 触发图片上传
+        function triggerImageUpload() {
+            document.getElementById('image-upload-input').click();
+        }
+
+        // 在光标位置插入文字
+        function insertAtCursor(textarea, text) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const value = textarea.value;
+            textarea.value = value.substring(0, start) + text + value.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + text.length;
+            textarea.focus();
+        }
+
+        // 处理图片上传
+        async function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const btn = document.getElementById('upload-image-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ 上传中...';
+
+            try {
+                const formData = new FormData();
+                formData.append('image', file);
+
+                const response = await fetch(`${API_BASE}/api/wechat/upload-image`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    showToast('上传失败：' + result.error, 'error');
+                } else {
+                    const textarea = document.getElementById('markdown-input');
+                    insertAtCursor(textarea, `\n![](${result.url})\n`);
+                    updatePreview();
+                    showToast('图片上传成功！');
+                }
+            } catch (error) {
+                showToast('上传失败：' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📷 上传图片';
+                event.target.value = '';
+            }
+        }
+
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
+            // 图片上传事件
+            document.getElementById('image-upload-input').addEventListener('change', handleImageUpload);
+
             const markdownInput = document.getElementById('markdown-input');
+
+            // 粘贴图片自动上传
+            markdownInput.addEventListener('paste', async (e) => {
+                const items = e.clipboardData?.items;
+                if (!items) return;
+                for (const item of items) {
+                    if (item.type.startsWith('image/')) {
+                        e.preventDefault();
+                        const file = item.getAsFile();
+                        if (!file) continue;
+
+                        showLoadingToast('正在上传图片...');
+                        try {
+                            const formData = new FormData();
+                            formData.append('image', file);
+                            const response = await fetch(`${API_BASE}/api/wechat/upload-image`, {
+                                method: 'POST',
+                                body: formData
+                            });
+                            const result = await response.json();
+                            hideToast();
+                            if (result.error) {
+                                showToast('上传失败：' + result.error, 'error');
+                            } else {
+                                insertAtCursor(markdownInput, `\n![](${result.url})\n`);
+                                updatePreview();
+                                showToast('图片上传成功！');
+                            }
+                        } catch (error) {
+                            hideToast();
+                            showToast('上传失败：' + error.message, 'error');
+                        }
+                        break;
+                    }
+                }
+            });
+
             const titleInput = document.getElementById('article-title');
             const authorInput = document.getElementById('article-author');
             const themeSelector = document.getElementById('theme-selector');
@@ -1409,6 +1654,9 @@ curl -X POST \\
             markdownInput.addEventListener('input', updatePreview);
             titleInput.addEventListener('input', updatePreview);
             authorInput.addEventListener('input', updatePreview);
+
+            // 图片圆角切换
+            document.getElementById('image-corner').addEventListener('change', updatePreview);
 
             // 主题切换
             themeSelector.addEventListener('click', (e) => {
@@ -1420,6 +1668,29 @@ curl -X POST \\
 
             // 初始预览
             updatePreview();
+
+            // 同步滚动
+            const editor = markdownInput;
+            const previewContent = document.getElementById('preview-panel-content');
+            let syncScrollLock = false;
+
+            editor.addEventListener('scroll', () => {
+                if (syncScrollLock) return;
+                syncScrollLock = true;
+                const editorMax = editor.scrollHeight - editor.clientHeight;
+                const ratio = editorMax > 0 ? editor.scrollTop / editorMax : 0;
+                previewContent.scrollTop = ratio * (previewContent.scrollHeight - previewContent.clientHeight);
+                requestAnimationFrame(() => { syncScrollLock = false; });
+            });
+
+            previewContent.addEventListener('scroll', () => {
+                if (syncScrollLock) return;
+                syncScrollLock = true;
+                const previewMax = previewContent.scrollHeight - previewContent.clientHeight;
+                const ratio = previewMax > 0 ? previewContent.scrollTop / previewMax : 0;
+                editor.scrollTop = ratio * (editor.scrollHeight - editor.clientHeight);
+                requestAnimationFrame(() => { syncScrollLock = false; });
+            });
         });
     </script>
 </body>

@@ -5,6 +5,8 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
+const multer = require('multer');
+const sharp = require('sharp');
 const agent = new https.Agent({
     rejectUnauthorized: false
 });
@@ -69,17 +71,24 @@ async function downloadImage(imageUrl) {
         fs.mkdirSync(tmpDir, { recursive: true });
     }
 
-    const urlObj = new URL(imageUrl);
-    const ext = path.extname(urlObj.pathname).split('?')[0] || '.jpg';
-    const fileName = `img_${Date.now()}_${Math.random().toString(36).substr(2, 6)}${ext}`;
-    const filePath = path.join(tmpDir, fileName);
-
     const response = await fetch(imageUrl, { agent });
     if (!response.ok) {
         throw new Error(`下载图片失败: ${response.status}`);
     }
 
-    const buffer = await response.buffer();
+    const contentType = response.headers.get('content-type') || '';
+    let buffer = await response.buffer();
+
+    // webp 转 jpg，微信不支持 webp 格式
+    if (contentType.includes('webp')) {
+        console.log('  🔄 webp → jpg 转换中...');
+        buffer = await sharp(buffer).jpeg({ quality: 90 }).toBuffer();
+    }
+
+    const ext = contentType.includes('png') ? '.png' : contentType.includes('gif') ? '.gif' : '.jpg';
+    const fileName = `img_${Date.now()}_${Math.random().toString(36).substr(2, 6)}${ext}`;
+    const filePath = path.join(tmpDir, fileName);
+
     fs.writeFileSync(filePath, buffer);
     return filePath;
 }
@@ -205,6 +214,74 @@ app.post('/api/wechat/draft', async (req, res) => {
 
         res.json({ success: true, media_id: draftData.media_id });
     } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 图片上传到微信永久存储
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/gif'];
+        if (allowed.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('仅支持 JPG、PNG、GIF 格式'));
+        }
+    }
+});
+
+app.post('/api/wechat/upload-image', upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: '未选择图片' });
+        }
+
+        // 获取 access_token
+        const tokenResponse = await fetch(
+            `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${WECHAT_CONFIG.appId}&secret=${WECHAT_CONFIG.appSecret}`,
+            { agent }
+        );
+        const tokenData = await tokenResponse.json();
+
+        if (tokenData.errcode) {
+            return res.status(400).json({ error: '获取 access_token 失败: ' + tokenData.errmsg });
+        }
+
+        const accessToken = tokenData.access_token;
+
+        // 构建 multipart 并上传到微信
+        const fileBuffer = req.file.buffer;
+        const fileName = req.file.originalname;
+        const boundary = '----FormBoundary' + Math.random().toString(36).substr(2);
+        const payload = Buffer.concat([
+            Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="media"; filename="${fileName}"\r\nContent-Type: application/octet-stream\r\n\r\n`),
+            fileBuffer,
+            Buffer.from(`\r\n--${boundary}--\r\n`)
+        ]);
+
+        const wechatResponse = await fetch(
+            `https://api.weixin.qq.com/cgi-bin/media/uploadimg?access_token=${accessToken}`,
+            {
+                agent,
+                method: 'POST',
+                headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+                body: payload
+            }
+        );
+
+        const wechatData = await wechatResponse.json();
+
+        if (wechatData.errcode) {
+            return res.status(400).json({ error: '微信上传失败: ' + wechatData.errmsg });
+        }
+
+        console.log(`📷 图片上传成功: ${wechatData.url.substring(0, 60)}...`);
+        res.json({ url: wechatData.url });
+
+    } catch (error) {
+        console.error('图片上传错误:', error);
         res.status(500).json({ error: error.message });
     }
 });
