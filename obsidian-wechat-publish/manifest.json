@@ -1,0 +1,9 @@
+{
+  "id": "wechat-publish",
+  "name": "公众号发布",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "在 Obsidian 中编写公众号文章，一键推送到微信草稿箱",
+  "author": "游白",
+  "isDesktopOnly": false
+}
