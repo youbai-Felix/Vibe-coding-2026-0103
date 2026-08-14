@@ -1,0 +1,29 @@
+{
+  "recommended_threshold": 0.34,
+  "description_required_concepts": ["read_action", "source", "output"],
+  "positive_concepts": {
+    "read_action": ["读书", "阅读", "书评", "解读", "读后感", "读书解读", "read", "book review", "读书文章"],
+    "source": ["一篇文章", "选题", "书", "书名", "这本书", "文章", "article", "book"],
+    "output": ["公众号文章", "解读文章", "原创文章", "长文", "正文", "markdown", "公众号", "文章"],
+    "style": ["洞见", "人生智慧", "治愈", "书评类", "读书类", "洞见风格"],
+    "persona": ["人设", "账号", "多账号"]
+  },
+  "negative_patterns": ["总结要点", "讲了什么", "书摘", "读书笔记", "思维导图", "小红书", "朋友圈", "推文", "资讯", "营销", "解释一下", "简单介绍", "不写文章"],
+  "should_trigger": [
+    { "text": "帮我把《活着》写成一篇读书解读公众号文章", "family": "cn_book_to_article" },
+    { "text": "这篇关于孤独的文章，帮我写成洞见风格的读书解读", "family": "cn_article_to_reading" },
+    { "text": "我想写一篇《被讨厌的勇气》的书评", "family": "cn_book_review" },
+    { "text": "用这个选题写一篇人生智慧类的读书文章", "family": "cn_topic_to_reading" },
+    { "text": "帮我把这本书写成可以发公众号的原创解读", "family": "cn_book_to_publish" }
+  ],
+  "should_not_trigger": [
+    { "text": "这本书讲了什么？", "family": "cn_content_question" },
+    { "text": "帮我总结一下这本书的要点", "family": "cn_summary_only" },
+    { "text": "帮我写一篇AI科技资讯", "family": "cn_non_reading" },
+    { "text": "解释一下书里这个概念的意思", "family": "cn_explain_only" }
+  ],
+  "near_neighbor": [
+    { "text": "帮我做一份这本书的读书笔记", "family": "cn_notes_not_article" },
+    { "text": "写一篇读书类的小红书帖子", "family": "cn_short_form" }
+  ]
+}
