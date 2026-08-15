@@ -164,7 +164,7 @@ python "<SKILL_DIR>/scripts/check_originality.py" "<article-path>" --json
 
 写完正文后，**抓文章自己的原图**（`og:image`）作封面，原样插入标题后——这是默认动作，不是可选项。**只抓原图，绝不自己设计/生成封面**（不 make_cover、不要书封 / 纯标题 / 文章图模板等任何「再设计」；那套设计能力归独立 skill wechat-cover，本包不碰）。抓图脚本借用 wechat-cover：
 
-1. 写作时 webReader 读文章，记下封面图 URL（`og:image` 或正文第一图）。
+1. 写作时 webReader 读文章，记下封面图 URL（`og:image` 或正文第一图）。**URL 必须现场从页面 HTML 提取，禁止凭记忆/转抄**：微信 mmbiz 长 URL 转抄极易坏字符（下载报 400）。提取方式：`curl -A "<浏览器UA>" "<文章URL>" | grep -o 'property="og:image" content="[^"]*"'`（或 `var msg_cdn_url` 变量），拿到原文 URL 原样传给脚本。
 2. 一步下载到 `<ATT>` + 插入正文标题后（带 Referer 防盗链；脚本自动算正文→封面的相对路径）：
 
 ```
