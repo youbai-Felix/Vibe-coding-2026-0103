@@ -104,8 +104,8 @@ def check(path):
     hard_fail = (bool(banned_hits) or (not has_closing) or section_count != 3
                  or (not has_h1) or bold_count < 3 or quote_count < 1)
     warnings = []
-    if "👇👇读《" not in text:
-        warnings.append("缺末尾推荐语「👇👇读《书名》：金句」（默认应加）")
+    if "👇👇读《" in text:
+        warnings.append("末尾仍有导流推荐语「👇👇读《书名》」——2026-08-15 已废弃该机制，应删除")
     if closing_count > 1:
         warnings.append(f"有 {closing_count} 个「写在最后」标题，应只 1 个")
     if limit_over:

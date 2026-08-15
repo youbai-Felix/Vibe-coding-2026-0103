@@ -76,7 +76,7 @@ class ChecksRegression(unittest.TestCase):
         """锁死 3 节后，4 节应判 fail。"""
         four = ("# T\n\n# 01 一\n\n**g1。** 一。\n\n> 引。\n\n"
                 "# 02 二\n\n**g2。** 二。\n\n# 03 三\n\n**g3。** 三。\n\n"
-                "# 04 四\n\n**g4。** 四。\n\n# 写在最后\n\n收。\n\n👇👇读《X》：金句。\n")
+                "# 04 四\n\n**g4。** 四。\n\n# 写在最后\n\n收。\n")
         p = self._write_tmp(four)
         try:
             r = check_style.check(p)
@@ -88,7 +88,7 @@ class ChecksRegression(unittest.TestCase):
     def test_no_title_still_three_sections(self):
         """无总标题 H1 时，3 个数字编号节仍应判 section=3（保护 section 识别修复）。"""
         three = ("# 01 一\n\n**g1。** 一。\n\n> 引。\n\n"
-                 "# 02 二\n\n**g2。** 二。\n\n# 03 三\n\n**g3。** 三。\n\n# 写在最后\n\n收。\n\n👇👇读《X》：金句。\n")
+                 "# 02 二\n\n**g2。** 二。\n\n# 03 三\n\n**g3。** 三。\n\n# 写在最后\n\n收。\n")
         p = self._write_tmp(three)
         try:
             r = check_style.check(p)
@@ -97,22 +97,22 @@ class ChecksRegression(unittest.TestCase):
         finally:
             os.unlink(p)
 
-    def test_missing_recommend_warning(self):
-        """缺末尾推荐语 → 软警告。"""
-        no_rec = ("# T\n\n# 01 一\n\n**g1。** 一。\n\n> 引。\n\n"
-                  "# 02 二\n\n**g2。** 二。\n\n# 03 三\n\n**g3。** 三。\n\n# 写在最后\n\n收。\n")
-        p = self._write_tmp(no_rec)
+    def test_stale_recommend_line_warned(self):
+        """残留导流推荐语（已废弃机制）→ 软警告。"""
+        stale = ("# T\n\n# 01 一\n\n**g1。** 一。\n\n> 引。\n\n"
+                 "# 02 二\n\n**g2。** 二。\n\n# 03 三\n\n**g3。** 三。\n\n# 写在最后\n\n收。\n\n👇👇读《X》：金句。\n")
+        p = self._write_tmp(stale)
         try:
             r = check_style.check(p)
-            self.assertTrue(any("缺末尾推荐语" in w for w in r["warnings"]),
-                            f"应警告缺推荐语：{r['warnings']}")
+            self.assertTrue(any("已废弃" in w for w in r["warnings"]),
+                            f"应警告残留推荐语：{r['warnings']}")
         finally:
             os.unlink(p)
 
     def test_digit_leading_title_not_counted_as_section(self):
         """数字开头的总标题（照搬原标题）不应被误计为节。"""
         digit = ("# 35岁还单身，是我不够好吗\n\n你。\n\n# 01 一\n\n**g1。** 一。\n\n> 引。\n\n"
-                 "# 02 二\n\n**g2。** 二。\n\n# 03 三\n\n**g3。** 三。\n\n# 写在最后\n\n收。\n\n👇👇读《X》：金句。\n")
+                 "# 02 二\n\n**g2。** 二。\n\n# 03 三\n\n**g3。** 三。\n\n# 写在最后\n\n收。\n")
         p = self._write_tmp(digit)
         try:
             r = check_style.check(p)
@@ -125,7 +125,7 @@ class ChecksRegression(unittest.TestCase):
         """节编号必须从 01 连续递增；跳号只数链内节数。"""
         skipped = ("# T\n\n# 01 一\n\n**g1。** 一。\n\n> 引。\n\n"
                    "# 02 二\n\n**g2。** 二。\n\n# 30 三十\n\n**g30。** 三十。\n\n# 03 三\n\n**g3。** 三。\n\n"
-                   "# 写在最后\n\n收。\n\n👇👇读《X》：金句。\n")
+                   "# 写在最后\n\n收。\n")
         p = self._write_tmp(skipped)
         try:
             r = check_style.check(p)
@@ -136,7 +136,7 @@ class ChecksRegression(unittest.TestCase):
     def test_emdash_in_quote_block_exempt(self):
         """引用块中的书中原文含破折号 → 豁免，不判 fail。"""
         q = ("# T\n\n# 01 一\n\n**g1。** 一。\n\n> 我们并不是为了满足别人的期待而活着——岸见一郎\n\n"
-             "# 02 二\n\n**g2。** 二。\n\n# 03 三\n\n**g3。** 三。\n\n# 写在最后\n\n收。\n\n👇👇读《X》：金句。\n")
+             "# 02 二\n\n**g2。** 二。\n\n# 03 三\n\n**g3。** 三。\n\n# 写在最后\n\n收。\n")
         p = self._write_tmp(q)
         try:
             r = check_style.check(p)
@@ -147,7 +147,7 @@ class ChecksRegression(unittest.TestCase):
     def test_emdash_in_body_still_fails(self):
         """正文里的破折号仍然 fail。"""
         b = ("# T\n\n# 01 一\n\n**g1。** 一——二。\n\n> 引。\n\n"
-             "# 02 二\n\n**g2。** 二。\n\n# 03 三\n\n**g3。** 三。\n\n# 写在最后\n\n收。\n\n👇👇读《X》：金句。\n")
+             "# 02 二\n\n**g2。** 二。\n\n# 03 三\n\n**g3。** 三。\n\n# 写在最后\n\n收。\n")
         p = self._write_tmp(b)
         try:
             r = check_style.check(p)
