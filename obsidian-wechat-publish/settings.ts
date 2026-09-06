@@ -11,6 +11,10 @@ export interface WeChatSettings {
   usePhoneFrame: boolean;
   macCodeBlock: boolean;
   sideMargin: number;
+  centerHeading: boolean;
+  imageCaption: boolean;
+  // Dia 系列一级标题装饰：bar 渐变竖条 / triangle 播放三角 / arrow 右向箭头
+  diaH1Style: string;
 }
 
 export const DEFAULT_SETTINGS: WeChatSettings = {
@@ -18,11 +22,14 @@ export const DEFAULT_SETTINGS: WeChatSettings = {
   author: "游白",
   apiUrl: "http://123.207.219.251:3000/api/wechat/draft",
   fontFamily: "sans",
-  fontSize: "15px",
+  fontSize: "17px",
   accentColor: "",
   usePhoneFrame: true,
   macCodeBlock: false,
   sideMargin: 15,
+  centerHeading: false,
+  imageCaption: false,
+  diaH1Style: "bar",
 };
 
 export class WeChatSettingTab extends PluginSettingTab {

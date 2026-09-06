@@ -268,44 +268,54 @@
 /* ====== 颜色选择器 ====== */
 
 .wechat-color-grid {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
-  flex-wrap: wrap;
-  align-items: center;
 }
 
 .wechat-btn-color {
-  width: 28px;
-  height: 28px;
+  height: 32px;
   padding: 0;
-  border: 2px solid transparent;
-  border-radius: 50%;
-  background: transparent;
+  border: none;
+  border-radius: 6px;
+  background: var(--btn-color);
   cursor: pointer;
   transition: all 0.15s ease;
   position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
-.wechat-btn-color::after {
-  content: '';
+.wechat-btn-color:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+.wechat-btn-color.active::after {
+  content: '✓';
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--btn-color);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
-.wechat-btn-color:hover {
-  transform: scale(1.1);
+/* 自定义行：圆形取色器 + 当前色码 + 默认 */
+.wechat-color-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
 }
 
-.wechat-btn-color.active {
-  border-color: var(--btn-color);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+.wechat-color-code {
+  flex: 1;
+  font-size: 12px;
+  font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  color: var(--wc-secondary);
+  letter-spacing: 0.3px;
 }
 
 .wechat-btn-custom-text {
@@ -351,20 +361,8 @@
   overflow: hidden;
 }
 
-.wechat-color-custom::before {
-  content: '+';
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--wc-secondary);
-  position: absolute;
-}
-
 .wechat-color-custom.active {
   border-color: var(--wc-accent);
-}
-
-.wechat-color-custom.active::before {
-  display: none;
 }
 
 .wechat-color-custom-preview {
@@ -479,6 +477,10 @@
   background: var(--wc-background);
 }
 
+.wechat-settings-details > .wechat-settings-area {
+  padding: 12px;
+}
+
 .wechat-settings-summary {
   padding: 12px;
   font-weight: 600;
@@ -554,12 +556,16 @@
   max-height: 812px !important;
   flex: 0 0 auto;
   margin: auto;
-  border-radius: 56px;
+  border-radius: 58px;
   background: #ffffff;
+  /* 银色金属圈(高光/银灰/内亮线) + 黑色屏幕边框，全部用外阴影同心环：
+     inset 环会被框内白色子元素盖住，必须用 outer ring */
   box-shadow:
-    inset 0 0 0 2px #e5e5e5,
-    0 0 0 10px #1d1d1f,
-    0 40px 80px -20px rgba(0, 0, 0, 0.4);
+    0 0 0 2px #e9edf0,
+    0 0 0 4px #a9b0b8,
+    0 0 0 6px #d8dde1,
+    0 0 0 16px #0e0e11,
+    0 30px 60px -18px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -569,10 +575,11 @@
 
 .theme-dark .wechat-phone-frame {
   box-shadow:
-    inset 0 0 0 2px #e5e5e5,
-    0 0 0 10px #1d1d1f,
-    0 0 0 11px rgba(255, 255, 255, 0.1),
-    0 40px 80px -20px rgba(0, 0, 0, 0.8);
+    0 0 0 2px #e9edf0,
+    0 0 0 4px #a9b0b8,
+    0 0 0 6px #d8dde1,
+    0 0 0 16px #0e0e11,
+    0 30px 60px -18px rgba(0, 0, 0, 0.75);
 }
 
 .wechat-dynamic-island {
@@ -836,6 +843,25 @@
 }
 
 .wechat-digest-textarea:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.1);
+}
+
+/* 书单卡片插入弹窗：单行输入框 */
+.wechat-book-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  transition: border-color 0.15s ease;
+}
+
+.wechat-book-input:focus {
   outline: none;
   border-color: var(--interactive-accent);
   box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.1);

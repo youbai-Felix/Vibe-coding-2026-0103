@@ -1,12 +1,13 @@
 import { ItemView, Modal } from "obsidian";
 import type WeChatPublishPlugin from "./main";
 import { themes, fontFamilyOptions, fontSizeOptions, accentColorOptions, type ThemeConfig } from "./themes";
-import { markdownToWechatHTML, buildConvertOptions } from "./converter";
+import { markdownToWechatHTML, buildConvertOptions, copyHTMLToClipboard } from "./converter";
 import { pushToDraft } from "./push";
 
 export const PREVIEW_VIEW_TYPE = "wechat-preview";
 
 // 状态栏 SVG
+const LOCATION_SVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="#1d1d1f"><path d="M21 3L3 10.5l7.5 3L14 21L21 3z"/></svg>`;
 const SIGNAL_SVG = `<svg width="17" height="12" viewBox="0 0 17 12" fill="none"><rect x="0" y="9" width="3" height="3" rx="0.5" fill="#1d1d1f"/><rect x="4.5" y="6" width="3" height="6" rx="0.5" fill="#1d1d1f"/><rect x="9" y="3" width="3" height="9" rx="0.5" fill="#1d1d1f"/><rect x="13.5" y="0" width="3" height="12" rx="0.5" fill="#1d1d1f"/></svg>`;
 const WIFI_SVG = `<svg width="16" height="12" viewBox="0 0 16 12" fill="#1d1d1f"><path d="M8 9.6a1.6 1.6 0 100 3.2 1.6 1.6 0 000-3.2z"/><path d="M4.7 8.3a4.8 4.8 0 016.6 0" stroke="#1d1d1f" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M2.2 5.8a8 8 0 0111.6 0" stroke="#1d1d1f" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M0 3.2a11.2 11.2 0 0116 0" stroke="#1d1d1f" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>`;
 const BATTERY_SVG = `<svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x="0.5" y="0.5" width="23" height="12" rx="2.5" stroke="#1d1d1f" stroke-opacity="0.35"/><rect x="2" y="2" width="20" height="9" rx="1.5" fill="#1d1d1f"/><path d="M25 4.5v4a2 2 0 000-4z" fill="#1d1d1f" fill-opacity="0.4"/></svg>`;
@@ -16,12 +17,14 @@ const SLIDERS_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"
 const MONITOR_PHONE_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`;
 const COPY_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`;
 const SEND_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+const BOOK_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`;
 
 export class PreviewView extends ItemView {
   plugin: WeChatPublishPlugin;
   previewContainer!: HTMLElement;
   settingsOverlay!: HTMLElement;
   toolbarTitle!: HTMLElement;
+  private settingsBtn!: HTMLElement;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private settingsOpen = false;
 
@@ -57,7 +60,7 @@ export class PreviewView extends ItemView {
       const header = phoneFrame.createEl("div", { cls: "wechat-phone-header" });
       header.createEl("span", { cls: "wechat-status-left", text: "9:41" });
       const statusRight = header.createEl("span", { cls: "wechat-status-right" });
-      statusRight.innerHTML = SIGNAL_SVG + WIFI_SVG + BATTERY_SVG;
+      statusRight.innerHTML = LOCATION_SVG + SIGNAL_SVG + WIFI_SVG + BATTERY_SVG;
 
       const nav = phoneFrame.createEl("div", { cls: "wechat-phone-nav" });
       nav.createEl("span", { cls: "wechat-phone-nav-title", text: "公众号预览" });
@@ -82,9 +85,8 @@ export class PreviewView extends ItemView {
       if (!this.settingsOpen) return;
       const target = evt.target as HTMLElement;
       if (this.settingsOverlay.contains(target)) return;
-      // 点击的不是设置按钮本身
-      const btn = container.querySelector(".wechat-icon-btn");
-      if (btn && btn.contains(target)) return;
+      // 点击的不是设置按钮本身（精确判断，避免被其他图标按钮干扰）
+      if (this.settingsBtn && this.settingsBtn.contains(target)) return;
       this.settingsOpen = false;
       this.settingsOverlay.removeClass("visible");
     });
@@ -100,7 +102,11 @@ export class PreviewView extends ItemView {
     // 右侧操作按钮
     const actions = toolbar.createEl("div", { cls: "wechat-toolbar-actions" });
 
+    const cardBtn = this.createIconBtn(actions, BOOK_SVG, "插入书单卡片");
+    cardBtn.addEventListener("click", () => this.plugin.openBookCardModal());
+
     const settingsBtn = this.createIconBtn(actions, SLIDERS_SVG, "设置");
+    this.settingsBtn = settingsBtn;
     settingsBtn.addEventListener("click", () => this.toggleSettings());
 
     const modeBtn = this.createIconBtn(actions, MONITOR_PHONE_SVG, "切换预览模式");
@@ -158,8 +164,100 @@ export class PreviewView extends ItemView {
       });
     });
 
+    // Dia 一级标题装饰（仅 Dia 系列主题显示）
+    if (this.plugin.settings.theme.startsWith("dia")) {
+      this.createSettingSection(area, "Dia 一级标题", (content) => {
+        const grid = content.createEl("div", { cls: "wechat-btn-grid" });
+        const h1Opts: [string, string][] = [
+          ["bar", "渐变竖条"],
+          ["triangle", "播放三角 ▶"],
+          ["arrow", "右向箭头 ⏏"],
+          ["pill", "渐变方块"],
+        ];
+        h1Opts.forEach(([val, label]) => {
+          const btn = grid.createEl("button", {
+            cls: `wechat-btn-theme ${(this.plugin.settings.diaH1Style || "bar") === val ? "active" : ""}`,
+            text: label,
+          });
+          btn.addEventListener("click", () => {
+            this.plugin.settings.diaH1Style = val;
+            this.plugin.saveSettings();
+            this.buildSettingsContent();
+            this.renderPreview();
+          });
+        });
+      });
+    }
+
+    // 主题色（矩形色块 2×4 + 圆形自定义取色器，按设计图）
+    this.createSettingSection(area, "主题色", (content) => {
+      const colorGrid = content.createEl("div", { cls: "wechat-color-grid" });
+      accentColorOptions.forEach((opt) => {
+        const btn = colorGrid.createEl("button", {
+          cls: `wechat-btn-color ${this.plugin.settings.accentColor === opt.color ? "active" : ""}`,
+        });
+        btn.style.setProperty("background-color", opt.color);
+        btn.setAttribute("aria-label", opt.label);
+        btn.addEventListener("click", () => {
+          this.plugin.settings.accentColor = opt.color;
+          this.plugin.saveSettings();
+          this.buildSettingsContent();
+          this.renderPreview();
+        });
+      });
+
+      // 自定义行：圆形取色器 + 当前色码 + 默认
+      const currentColor = this.plugin.settings.accentColor || "";
+      const isCustom = currentColor !== "" && !accentColorOptions.some(o => o.color === currentColor);
+      const customRow = content.createEl("div", { cls: "wechat-color-custom-row" });
+
+      const customWrap = customRow.createEl("label", { cls: `wechat-color-custom ${isCustom ? "active" : ""}` });
+      const customInput = customWrap.createEl("input", {
+        attr: { type: "color", value: isCustom ? currentColor : "#536DEC" },
+      });
+      customInput.style.setProperty("opacity", "0");
+      customInput.style.setProperty("position", "absolute");
+      customInput.style.setProperty("width", "0");
+      customInput.style.setProperty("height", "0");
+      customInput.style.setProperty("padding", "0");
+      const customPreview = customWrap.createEl("span", { cls: "wechat-color-custom-preview" });
+      customPreview.style.setProperty("background-color", currentColor || "#d2d2d7");
+      const codeText = customRow.createEl("span", {
+        cls: "wechat-color-code",
+        text: currentColor ? currentColor.toUpperCase() : "默认主题色",
+      });
+
+      customInput.addEventListener("input", () => {
+        this.plugin.settings.accentColor = customInput.value;
+        customPreview.style.setProperty("background-color", customInput.value);
+        codeText.textContent = customInput.value.toUpperCase();
+        customWrap.addClass("active");
+        this.plugin.saveSettings();
+        this.renderPreview();
+      });
+      customInput.addEventListener("change", () => {
+        this.buildSettingsContent();
+      });
+
+      const resetBtn = customRow.createEl("button", {
+        cls: `wechat-btn-custom-text ${!currentColor ? "active" : ""}`,
+        text: "默认",
+      });
+      resetBtn.addEventListener("click", () => {
+        this.plugin.settings.accentColor = "";
+        this.plugin.saveSettings();
+        this.buildSettingsContent();
+        this.renderPreview();
+      });
+    });
+
+    // 高级选项（字体 / 字号 / 标题居中 / 侧边距 / Mac 代码块 / 图片标注）
+    const details = area.createEl("details", { cls: "wechat-settings-details" });
+    details.createEl("summary", { cls: "wechat-settings-summary", text: "高级选项" });
+    const detailsContent = details.createEl("div", { cls: "wechat-settings-area" });
+
     // 字体
-    this.createSettingSection(area, "字体", (content) => {
+    this.createSettingSection(detailsContent, "字体", (content) => {
       const grid = content.createEl("div", { cls: "wechat-btn-grid" });
       Object.entries(fontFamilyOptions).forEach(([key, opt]) => {
         const btn = grid.createEl("button", {
@@ -176,7 +274,7 @@ export class PreviewView extends ItemView {
     });
 
     // 字号
-    this.createSettingSection(area, "字号", (content) => {
+    this.createSettingSection(detailsContent, "字号", (content) => {
       const row = content.createEl("div", { cls: "wechat-btn-row" });
       fontSizeOptions.forEach((opt) => {
         const btn = row.createEl("button", {
@@ -192,69 +290,24 @@ export class PreviewView extends ItemView {
       });
     });
 
-    // 主题色
-    this.createSettingSection(area, "主题色", (content) => {
-      const colorGrid = content.createEl("div", { cls: "wechat-color-grid" });
-      accentColorOptions.forEach((opt) => {
-        const btn = colorGrid.createEl("button", {
-          cls: `wechat-btn-color ${this.plugin.settings.accentColor === opt.color ? "active" : ""}`,
-        });
-        btn.style.setProperty("--btn-color", opt.color);
-        btn.setAttribute("aria-label", opt.label);
-        btn.addEventListener("click", () => {
-          this.plugin.settings.accentColor = opt.color;
-          this.plugin.saveSettings();
-          this.buildSettingsContent();
-          this.renderPreview();
-        });
+    // 标题居中
+    this.createSettingSection(detailsContent, "标题居中", (content) => {
+      const toggle = content.createEl("label", { cls: "wechat-toggle" });
+      const input = toggle.createEl("input", {
+        cls: "wechat-toggle-input",
+        attr: { type: "checkbox" },
       });
-
-      // 自定义取色器
-      const isCustom = this.plugin.settings.accentColor && !accentColorOptions.some(o => o.color === this.plugin.settings.accentColor);
-      const customWrap = colorGrid.createEl("label", {
-        cls: `wechat-color-custom ${isCustom ? "active" : ""}`,
-      });
-      const customInput = customWrap.createEl("input", {
-        attr: {
-          type: "color",
-          value: isCustom ? this.plugin.settings.accentColor : "#0071E3",
-        },
-      });
-      customInput.style.setProperty("opacity", "0");
-      customInput.style.setProperty("position", "absolute");
-      customInput.style.setProperty("width", "0");
-      customInput.style.setProperty("height", "0");
-      customInput.style.setProperty("padding", "0");
-      customInput.addEventListener("input", () => {
-        this.plugin.settings.accentColor = customInput.value;
-        customPreview.style.setProperty("background-color", customInput.value);
-        customWrap.addClass("active");
+      if (this.plugin.settings.centerHeading) input.checked = true;
+      toggle.createEl("span", { cls: "wechat-toggle-slider" });
+      input.addEventListener("change", () => {
+        this.plugin.settings.centerHeading = input.checked;
         this.plugin.saveSettings();
-        this.renderPreview();
-      });
-      customInput.addEventListener("change", () => {
-        this.buildSettingsContent();
-      });
-      const customPreview = customWrap.createEl("span", { cls: "wechat-color-custom-preview" });
-      if (isCustom) {
-        customPreview.style.setProperty("background-color", this.plugin.settings.accentColor);
-      }
-
-      // 重置按钮
-      const resetBtn = colorGrid.createEl("button", {
-        cls: `wechat-btn-custom-text ${!this.plugin.settings.accentColor ? "active" : ""}`,
-        text: "默认",
-      });
-      resetBtn.addEventListener("click", () => {
-        this.plugin.settings.accentColor = "";
-        this.plugin.saveSettings();
-        this.buildSettingsContent();
         this.renderPreview();
       });
     });
 
-    // 边距
-    this.createSettingSection(area, "侧边距", (content) => {
+    // 侧边距
+    this.createSettingSection(detailsContent, "侧边距", (content) => {
       const sliderContainer = content.createEl("div", { cls: "wechat-slider-container" });
       const slider = sliderContainer.createEl("input", {
         cls: "wechat-slider",
@@ -272,11 +325,7 @@ export class PreviewView extends ItemView {
       });
     });
 
-    // 高级选项
-    const details = area.createEl("details", { cls: "wechat-settings-details" });
-    const summary = details.createEl("summary", { cls: "wechat-settings-summary", text: "高级选项" });
-    const detailsContent = details.createEl("div", { cls: "wechat-settings-area" });
-
+    // Mac 代码块
     this.createSettingSection(detailsContent, "Mac 代码块", (content) => {
       const toggle = content.createEl("label", { cls: "wechat-toggle" });
       const input = toggle.createEl("input", {
@@ -287,6 +336,22 @@ export class PreviewView extends ItemView {
       toggle.createEl("span", { cls: "wechat-toggle-slider" });
       input.addEventListener("change", () => {
         this.plugin.settings.macCodeBlock = input.checked;
+        this.plugin.saveSettings();
+        this.renderPreview();
+      });
+    });
+
+    // 图片标注
+    this.createSettingSection(detailsContent, "图片标注", (content) => {
+      const toggle = content.createEl("label", { cls: "wechat-toggle" });
+      const input = toggle.createEl("input", {
+        cls: "wechat-toggle-input",
+        attr: { type: "checkbox" },
+      });
+      if (this.plugin.settings.imageCaption) input.checked = true;
+      toggle.createEl("span", { cls: "wechat-toggle-slider" });
+      input.addEventListener("change", () => {
+        this.plugin.settings.imageCaption = input.checked;
         this.plugin.saveSettings();
         this.renderPreview();
       });
@@ -368,12 +433,13 @@ export class PreviewView extends ItemView {
     if (!file || file.extension !== "md") return;
 
     const md = await this.app.vault.read(file);
+    const prepared = await this.plugin.prepareMdForExport(md, file);
     const theme = this.getThemeWithOverrides();
     const s = this.plugin.settings;
     const fontFamily = fontFamilyOptions[s.fontFamily]?.value;
 
-    const html = markdownToWechatHTML(md, theme, buildConvertOptions(s, fontFamilyOptions));
-    await navigator.clipboard.writeText(html);
+    const html = markdownToWechatHTML(prepared, theme, buildConvertOptions(s, fontFamilyOptions));
+    await copyHTMLToClipboard(html);
     this.showNotice("HTML 已复制");
   }
 
@@ -455,11 +521,12 @@ class SyncModal extends Modal {
       const file = this.app.workspace.getActiveFile();
       if (!file) return;
       const md = await this.app.vault.read(file);
+      const prepared = await this.plugin.prepareMdForExport(md, file);
       const theme = themes[this.plugin.settings.theme] || themes.chunmu;
       const s = this.plugin.settings;
       const fontFamily = fontFamilyOptions[s.fontFamily]?.value;
 
-      const html = markdownToWechatHTML(md, theme, buildConvertOptions(s, fontFamilyOptions));
+      const html = markdownToWechatHTML(prepared, theme, buildConvertOptions(s, fontFamilyOptions));
 
       const result = await pushToDraft({
         title: this.title,
