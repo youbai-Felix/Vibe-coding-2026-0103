@@ -3,21 +3,25 @@ import type WeChatPublishPlugin from "./main";
 import { themes, fontFamilyOptions, fontSizeOptions, accentColorOptions, type ThemeConfig } from "./themes";
 import { markdownToWechatHTML, buildConvertOptions, copyHTMLToClipboard } from "./converter";
 import { pushToDraft } from "./push";
+import { aiTypeset, typesetSummary } from "./ai";
 
 export const PREVIEW_VIEW_TYPE = "wechat-preview";
 
 // 状态栏 SVG
-const LOCATION_SVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="#1d1d1f"><path d="M21 3L3 10.5l7.5 3L14 21L21 3z"/></svg>`;
-const SIGNAL_SVG = `<svg width="17" height="12" viewBox="0 0 17 12" fill="none"><rect x="0" y="9" width="3" height="3" rx="0.5" fill="#1d1d1f"/><rect x="4.5" y="6" width="3" height="6" rx="0.5" fill="#1d1d1f"/><rect x="9" y="3" width="3" height="9" rx="0.5" fill="#1d1d1f"/><rect x="13.5" y="0" width="3" height="12" rx="0.5" fill="#1d1d1f"/></svg>`;
-const WIFI_SVG = `<svg width="16" height="12" viewBox="0 0 16 12" fill="#1d1d1f"><path d="M8 9.6a1.6 1.6 0 100 3.2 1.6 1.6 0 000-3.2z"/><path d="M4.7 8.3a4.8 4.8 0 016.6 0" stroke="#1d1d1f" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M2.2 5.8a8 8 0 0111.6 0" stroke="#1d1d1f" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M0 3.2a11.2 11.2 0 0116 0" stroke="#1d1d1f" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>`;
-const BATTERY_SVG = `<svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x="0.5" y="0.5" width="23" height="12" rx="2.5" stroke="#1d1d1f" stroke-opacity="0.35"/><rect x="2" y="2" width="20" height="9" rx="1.5" fill="#1d1d1f"/><path d="M25 4.5v4a2 2 0 000-4z" fill="#1d1d1f" fill-opacity="0.4"/></svg>`;
+// 信号/WiFi/电池按苹果官方状态图标绘制（官方 PNG 校准）：
+// 信号 bar 高度等差 40/60/80/100%、间距≈宽度的 0.75 倍、微圆角；
+// WiFi 按 🛜 表情形态：三段同心圆弧从底部圆点向上展开（90° 扇区、圆头、曲率给足）；
+// 电池方一点的圆角 + 内芯近填满
+const SIGNAL_SVG = `<svg width="18" height="11" viewBox="0 0 17.8 11" fill="none"><rect x="0" y="6.6" width="2.8" height="4.4" rx="0.7" fill="#1d1d1f"/><rect x="5" y="4.4" width="2.8" height="6.6" rx="0.7" fill="#1d1d1f"/><rect x="10" y="2.2" width="2.8" height="8.8" rx="0.7" fill="#1d1d1f"/><rect x="15" y="0" width="2.8" height="11" rx="0.7" fill="#1d1d1f"/></svg>`;
+const WIFI_SVG = `<svg width="17" height="12" viewBox="0 0 16 12.2" fill="none"><path d="M1.78 4.58A8.8 8.8 0 0 1 14.22 4.58" fill="none" stroke="#1d1d1f" stroke-width="2.2" stroke-linecap="round"/><path d="M3.76 6.56A6 6 0 0 1 12.24 6.56" fill="none" stroke="#1d1d1f" stroke-width="2.2" stroke-linecap="round"/><path d="M5.74 8.53A3.2 3.2 0 0 1 10.26 8.53" fill="none" stroke="#1d1d1f" stroke-width="2.2" stroke-linecap="round"/><circle cx="8" cy="10.8" r="1.2" fill="#1d1d1f"/></svg>`;
+const BATTERY_SVG = `<svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="23" height="12" rx="3.2" stroke="#1d1d1f" stroke-opacity="0.4"/><rect x="2" y="2" width="20" height="9" rx="2.2" fill="#1d1d1f"/><path d="M24.6 4.5v4a2 2 0 000-4z" fill="#1d1d1f" fill-opacity="0.4"/></svg>`;
 
 // 工具栏图标 SVG（16x16，currentColor）
 const SLIDERS_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>`;
 const MONITOR_PHONE_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`;
 const COPY_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`;
 const SEND_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
-const BOOK_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`;
+const AI_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>`;
 
 export class PreviewView extends ItemView {
   plugin: WeChatPublishPlugin;
@@ -27,6 +31,17 @@ export class PreviewView extends ItemView {
   private settingsBtn!: HTMLElement;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private settingsOpen = false;
+  // AI 排版状态：结果与原文按来源文件路径绑定，切文件自动失效
+  private aiTypesetMd: string | null = null;
+  private originalMd: string = "";
+  private aiSourcePath: string | null = null;
+  private aiActive = false;
+  private aiRunning = false;
+  private aiBar: HTMLElement | null = null;
+  // AI 排版常驻进度条
+  private aiStatusEl: HTMLElement | null = null;
+  private aiStatusTimer: ReturnType<typeof setInterval> | null = null;
+  private aiStage = "模型生成中";
 
   constructor(leaf: any, plugin: WeChatPublishPlugin) {
     super(leaf);
@@ -49,24 +64,30 @@ export class PreviewView extends ItemView {
     // 设置浮层（定位上下文在 wechat-preview-root）
     this.settingsOverlay = container.createEl("div", { cls: "wechat-settings-overlay" });
 
+    // AI 排版对比切换条（默认隐藏，AI 排版成功后显示；toggleMode 重建容器时随建）
+    this.aiBar = container.createEl("div", { cls: "wechat-ai-bar" });
+    this.updateAiBar();
+
     // 预览外层
     const wrapper = container.createEl("div", { cls: "wechat-preview-wrapper" });
     wrapper.addClass(this.plugin.settings.usePhoneFrame ? "mode-phone" : "mode-classic");
 
     if (this.plugin.settings.usePhoneFrame) {
+      // 仿 i-devices 结构：frame = 实体外壳（黑底+padding 银色圈），screen = 独立圆角屏幕层
       const phoneFrame = wrapper.createEl("div", { cls: "wechat-phone-frame" });
-      phoneFrame.createEl("div", { cls: "wechat-dynamic-island" });
+      const screen = phoneFrame.createEl("div", { cls: "wechat-phone-screen" });
+      screen.createEl("div", { cls: "wechat-dynamic-island" });
 
-      const header = phoneFrame.createEl("div", { cls: "wechat-phone-header" });
+      const header = screen.createEl("div", { cls: "wechat-phone-header" });
       header.createEl("span", { cls: "wechat-status-left", text: "9:41" });
       const statusRight = header.createEl("span", { cls: "wechat-status-right" });
-      statusRight.innerHTML = LOCATION_SVG + SIGNAL_SVG + WIFI_SVG + BATTERY_SVG;
+      statusRight.innerHTML = SIGNAL_SVG + WIFI_SVG + BATTERY_SVG;
 
-      const nav = phoneFrame.createEl("div", { cls: "wechat-phone-nav" });
+      const nav = screen.createEl("div", { cls: "wechat-phone-nav" });
       nav.createEl("span", { cls: "wechat-phone-nav-title", text: "公众号预览" });
 
-      this.previewContainer = phoneFrame.createEl("div", { cls: "wechat-phone-content" });
-      phoneFrame.createEl("div", { cls: "wechat-phone-home-indicator" });
+      this.previewContainer = screen.createEl("div", { cls: "wechat-phone-content" });
+      screen.createEl("div", { cls: "wechat-phone-home-indicator" });
     } else {
       this.previewContainer = wrapper.createEl("div", { cls: "wechat-classic-content" });
     }
@@ -102,8 +123,8 @@ export class PreviewView extends ItemView {
     // 右侧操作按钮
     const actions = toolbar.createEl("div", { cls: "wechat-toolbar-actions" });
 
-    const cardBtn = this.createIconBtn(actions, BOOK_SVG, "插入书单卡片");
-    cardBtn.addEventListener("click", () => this.plugin.openBookCardModal());
+    const aiBtn = this.createIconBtn(actions, AI_SVG, "AI 排版");
+    aiBtn.addEventListener("click", () => this.runAiTypeset());
 
     const settingsBtn = this.createIconBtn(actions, SLIDERS_SVG, "设置");
     this.settingsBtn = settingsBtn;
@@ -173,6 +194,8 @@ export class PreviewView extends ItemView {
           ["triangle", "播放三角 ▶"],
           ["arrow", "右向箭头 ⏏"],
           ["pill", "渐变方块"],
+          ["label", "填色标签条"],
+          ["gradtext", "渐变文字"],
         ];
         h1Opts.forEach(([val, label]) => {
           const btn = grid.createEl("button", {
@@ -181,6 +204,51 @@ export class PreviewView extends ItemView {
           });
           btn.addEventListener("click", () => {
             this.plugin.settings.diaH1Style = val;
+            this.plugin.saveSettings();
+            this.buildSettingsContent();
+            this.renderPreview();
+          });
+        });
+      });
+    }
+
+    // Dia 引用样式 / 分割线（仅 Dia 系列主题显示）
+    if (this.plugin.settings.theme.startsWith("dia")) {
+      this.createSettingSection(area, "Dia 引用样式", (content) => {
+        const grid = content.createEl("div", { cls: "wechat-btn-grid" });
+        const opts: [string, string][] = [
+          ["card", "渐变卡片"],
+          ["quote", "大引号"],
+          ["bar", "左粗边"],
+          ["cardquote", "卡片+引号"],
+        ];
+        opts.forEach(([val, label]) => {
+          const btn = grid.createEl("button", {
+            cls: `wechat-btn-theme ${(this.plugin.settings.diaQuoteStyle || "card") === val ? "active" : ""}`,
+            text: label,
+          });
+          btn.addEventListener("click", () => {
+            this.plugin.settings.diaQuoteStyle = val;
+            this.plugin.saveSettings();
+            this.buildSettingsContent();
+            this.renderPreview();
+          });
+        });
+      });
+      this.createSettingSection(area, "Dia 分割线", (content) => {
+        const grid = content.createEl("div", { cls: "wechat-btn-grid" });
+        const opts: [string, string][] = [
+          ["capsule", "渐变短条"],
+          ["dots", "三点渐变"],
+          ["fade", "渐隐线"],
+        ];
+        opts.forEach(([val, label]) => {
+          const btn = grid.createEl("button", {
+            cls: `wechat-btn-theme ${(this.plugin.settings.diaHrStyle || "capsule") === val ? "active" : ""}`,
+            text: label,
+          });
+          btn.addEventListener("click", () => {
+            this.plugin.settings.diaHrStyle = val;
             this.plugin.saveSettings();
             this.buildSettingsContent();
             this.renderPreview();
@@ -325,6 +393,30 @@ export class PreviewView extends ItemView {
       });
     });
 
+    // AI 排版
+    this.createSettingSection(detailsContent, "AI 排版", (content) => {
+      const mkInput = (label: string, key: "aiApiUrl" | "aiApiKey" | "aiModel", placeholder: string) => {
+        const row = content.createEl("div", { cls: "wechat-ai-setting-row" });
+        row.createEl("span", { cls: "wechat-ai-setting-label", text: label });
+        const input = row.createEl("input", {
+          cls: "wechat-text-input",
+          attr: { type: "text", placeholder },
+        });
+        input.value = this.plugin.settings[key];
+        input.addEventListener("change", () => {
+          this.plugin.settings[key] = input.value.trim();
+          this.plugin.saveSettings();
+        });
+      };
+      mkInput("API 地址", "aiApiUrl", "https://open.bigmodel.cn/api/anthropic/v1/messages");
+      mkInput("API Key", "aiApiKey", "sk-...");
+      mkInput("模型", "aiModel", "glm-5.3");
+      content.createEl("div", {
+        cls: "wechat-ai-setting-hint",
+        text: "Coding Plan 订阅 Key 填 anthropic/v1/messages（走订阅额度）；按量付费 Key 填 paas/v4/chat/completions。配好后点工具栏 ✨ 排版",
+      });
+    });
+
     // Mac 代码块
     this.createSettingSection(detailsContent, "Mac 代码块", (content) => {
       const toggle = content.createEl("label", { cls: "wechat-toggle" });
@@ -373,6 +465,131 @@ export class PreviewView extends ItemView {
     this.onOpen();
   }
 
+  // ====== AI 排版 ======
+
+  async runAiTypeset() {
+    if (this.aiRunning) return;
+    const file = this.app.workspace.getActiveFile();
+    if (!file || file.extension !== "md") {
+      this.showNotice("先打开一篇 Markdown 文件");
+      return;
+    }
+    const s = this.plugin.settings;
+    if (!s.aiApiUrl || !s.aiApiKey) {
+      if (!this.settingsOpen) this.toggleSettings();
+      this.showNotice("请先在设置里填写 AI 排版的 API 地址和 Key");
+      return;
+    }
+    this.aiRunning = true;
+    this.showAiStatus();
+    try {
+      const md = await this.app.vault.read(file);
+      const { markdown: result, warning } = await aiTypeset(
+        md,
+        { aiApiUrl: s.aiApiUrl, aiApiKey: s.aiApiKey, aiModel: s.aiModel },
+        (stage) => {
+          this.aiStage = stage;
+        }
+      );
+      this.originalMd = md;
+      this.aiTypesetMd = result;
+      this.aiSourcePath = file.path;
+      this.aiActive = true;
+      this.updateAiBar();
+      this.renderPreview();
+      const warnSuffix = warning ? `；未达标项：${warning}，已按现状采用` : "";
+      this.showNotice("AI 排版完成" + typesetSummary(md, result) + warnSuffix + "，可切原文对比", warning ? 6000 : 4000);
+    } catch (e: any) {
+      const msg = `AI 排版失败：${e?.message || e}`;
+      console.error("[wechat-publish] AI 排版失败", e);
+      this.showNotice(msg, 8000);
+    } finally {
+      this.hideAiStatus();
+      this.aiRunning = false;
+    }
+  }
+
+  // 常驻进度条：转圈 + 阶段 + 已耗时秒数，完成/失败即消失
+  showAiStatus() {
+    this.hideAiStatus();
+    const el = document.createElement("div");
+    el.className = "wechat-notice wechat-ai-status";
+    el.innerHTML = `<span class="wechat-ai-spinner"></span><span class="wechat-ai-status-text"></span>`;
+    document.body.appendChild(el);
+    this.aiStatusEl = el;
+    const start = Date.now();
+    const render = () => {
+      const sec = Math.round((Date.now() - start) / 1000);
+      const text = el.querySelector(".wechat-ai-status-text");
+      if (text) text.textContent = `AI 排版 · ${this.aiStage} · ${sec}s（通常 5~30 秒，可继续编辑）`;
+    };
+    this.aiStage = "模型生成中";
+    render();
+    this.aiStatusTimer = setInterval(render, 1000);
+  }
+
+  hideAiStatus() {
+    if (this.aiStatusTimer) {
+      clearInterval(this.aiStatusTimer);
+      this.aiStatusTimer = null;
+    }
+    this.aiStatusEl?.remove();
+    this.aiStatusEl = null;
+  }
+
+  // 当前预览应使用的 md：AI 版激活且来源文件没变时用 AI 结果
+  getActiveMd(fileMd: string, filePath: string): string {
+    if (this.aiActive && this.aiTypesetMd && this.aiSourcePath === filePath) {
+      return this.aiTypesetMd;
+    }
+    return fileMd;
+  }
+
+  resetAiIfFileChanged(filePath: string) {
+    if (this.aiSourcePath && this.aiSourcePath !== filePath) {
+      this.aiTypesetMd = null;
+      this.aiActive = false;
+      this.aiSourcePath = null;
+      this.updateAiBar();
+    }
+  }
+
+  updateAiBar() {
+    if (!this.aiBar) return;
+    this.aiBar.empty();
+    if (!this.aiTypesetMd || !this.aiSourcePath) return;
+
+    const mk = (label: string, active: boolean) => {
+      const b = this.aiBar!.createEl("button", {
+        cls: `wechat-ai-bar-btn${active ? " active" : ""}`,
+        text: label,
+      });
+      return b;
+    };
+    const orig = mk("原文", !this.aiActive);
+    orig.addEventListener("click", () => { this.aiActive = false; this.updateAiBar(); this.renderPreview(); });
+    const ai = mk("AI 排版", this.aiActive);
+    ai.addEventListener("click", () => { this.aiActive = true; this.updateAiBar(); this.renderPreview(); });
+
+    const write = this.aiBar.createEl("button", { cls: "wechat-ai-bar-btn wechat-ai-bar-write", text: "写回当前版本" });
+    write.addEventListener("click", async () => {
+      const file = this.app.workspace.getActiveFile();
+      if (!file || file.path !== this.aiSourcePath) return;
+      const content = this.aiActive ? this.aiTypesetMd! : this.originalMd;
+      await this.app.vault.process(file, () => content);
+      this.showNotice(this.aiActive ? "已写回 AI 排版版" : "已还原原文");
+    });
+
+    const close = this.aiBar.createEl("button", { cls: "wechat-ai-bar-btn wechat-ai-bar-close", text: "✕" });
+    close.addEventListener("click", () => {
+      this.aiTypesetMd = null;
+      this.aiActive = false;
+      this.aiSourcePath = null;
+      this.updateAiBar();
+      this.renderPreview();
+    });
+  }
+
   // ====== 预览渲染 ======
 
   scheduleRender() {
@@ -396,7 +613,7 @@ export class PreviewView extends ItemView {
   }
 
   getThemeWithOverrides(): ThemeConfig {
-    const base = themes[this.plugin.settings.theme] || themes.chunmu;
+    const base = themes[this.plugin.settings.theme] || themes.dia;
     return { ...base };
   }
 
@@ -417,7 +634,9 @@ export class PreviewView extends ItemView {
     // 加载动画
     this.previewContainer.addClass("wechat-preview-loading");
 
-    const md = await this.app.vault.read(file);
+    const rawMd = await this.app.vault.read(file);
+    this.resetAiIfFileChanged(file.path);
+    const md = this.getActiveMd(rawMd, file.path);
     const theme = this.getThemeWithOverrides();
     const s = this.plugin.settings;
     const fontFamily = fontFamilyOptions[s.fontFamily]?.value;
@@ -432,7 +651,9 @@ export class PreviewView extends ItemView {
     const file = this.app.workspace.getActiveFile();
     if (!file || file.extension !== "md") return;
 
-    const md = await this.app.vault.read(file);
+    const rawMd = await this.app.vault.read(file);
+    this.resetAiIfFileChanged(file.path);
+    const md = this.getActiveMd(rawMd, file.path);
     const prepared = await this.plugin.prepareMdForExport(md, file);
     const theme = this.getThemeWithOverrides();
     const s = this.plugin.settings;
@@ -447,19 +668,21 @@ export class PreviewView extends ItemView {
     const file = this.app.workspace.getActiveFile();
     if (!file || file.extension !== "md") return;
 
-    const md = await this.app.vault.read(file);
+    const rawMd = await this.app.vault.read(file);
+    this.resetAiIfFileChanged(file.path);
+    const md = this.getActiveMd(rawMd, file.path);
     const digest = md.split("\n").filter((l) => l.trim() && !l.startsWith("#") && !l.startsWith(">"))[0]?.trim()?.slice(0, 120) || "";
 
-    const modal = new SyncModal(this.app, this.plugin, file.basename, digest);
+    const modal = new SyncModal(this.app, this.plugin, file.basename, digest, md);
     modal.open();
   }
 
-  showNotice(text: string) {
+  showNotice(text: string, duration = 2000) {
     const notice = document.createElement("div");
     notice.className = "wechat-notice";
     notice.textContent = text;
     document.body.appendChild(notice);
-    setTimeout(() => notice.remove(), 2000);
+    setTimeout(() => notice.remove(), duration);
   }
 }
 
@@ -470,12 +693,15 @@ class SyncModal extends Modal {
   title: string;
   digest: string;
   coverUrl: string = "";
+  // 预览传入的 md（AI 排版激活时为 AI 版），为空则现场读文件
+  mdOverride: string | null;
 
-  constructor(app: any, plugin: WeChatPublishPlugin, title: string, digest: string) {
+  constructor(app: any, plugin: WeChatPublishPlugin, title: string, digest: string, mdOverride: string | null = null) {
     super(app);
     this.plugin = plugin;
     this.title = title;
     this.digest = digest;
+    this.mdOverride = mdOverride;
   }
 
   onOpen() {
@@ -520,9 +746,9 @@ class SyncModal extends Modal {
 
       const file = this.app.workspace.getActiveFile();
       if (!file) return;
-      const md = await this.app.vault.read(file);
+      const md = this.mdOverride ?? (await this.app.vault.read(file));
       const prepared = await this.plugin.prepareMdForExport(md, file);
-      const theme = themes[this.plugin.settings.theme] || themes.chunmu;
+      const theme = themes[this.plugin.settings.theme] || themes.dia;
       const s = this.plugin.settings;
       const fontFamily = fontFamilyOptions[s.fontFamily]?.value;
 

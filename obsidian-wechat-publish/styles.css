@@ -547,39 +547,52 @@
 
 /* ====== 手机框模式 ====== */
 
+/* 仿 i-devices（货拉拉纯 CSS 设备壳）结构：
+   frame = 黑底实体壳（padding 区画银色金属圈，inset 环不会被内容盖住）
+   screen = 独立圆角屏幕层；侧边按键用 frame 的伪元素凸出壳外 */
 .wechat-phone-frame {
-  width: 375px !important;
-  height: 812px !important;
-  min-width: 375px !important;
-  min-height: 812px !important;
-  max-width: 375px !important;
-  max-height: 812px !important;
+  width: 407px !important;
+  height: 844px !important;
+  min-width: 407px !important;
+  min-height: 844px !important;
+  max-width: 407px !important;
+  max-height: 844px !important;
   flex: 0 0 auto;
   margin: auto;
-  border-radius: 58px;
-  background: #ffffff;
-  /* 银色金属圈(高光/银灰/内亮线) + 黑色屏幕边框，全部用外阴影同心环：
-     inset 环会被框内白色子元素盖住，必须用 outer ring */
+  box-sizing: border-box;
+  padding: 15px;
+  background: #010101;
+  border: 1px solid #a7adb3;
+  border-radius: 60px;
   box-shadow:
-    0 0 0 2px #e9edf0,
-    0 0 0 4px #a9b0b8,
-    0 0 0 6px #d8dde1,
-    0 0 0 16px #0e0e11,
+    inset 0 0 0 2px #71767c,
+    inset 0 0 2px 1px rgba(255, 255, 255, 0.85),
+    inset 0 0 0 7px #c6cacd,
+    inset 0 0 0 8px #5b6066,
     0 30px 60px -18px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
   transition: box-shadow 0.3s ease;
 }
 
 .theme-dark .wechat-phone-frame {
   box-shadow:
-    0 0 0 2px #e9edf0,
-    0 0 0 4px #a9b0b8,
-    0 0 0 6px #d8dde1,
-    0 0 0 16px #0e0e11,
+    inset 0 0 0 2px #71767c,
+    inset 0 0 2px 1px rgba(255, 255, 255, 0.85),
+    inset 0 0 0 7px #c6cacd,
+    inset 0 0 0 8px #5b6066,
     0 30px 60px -18px rgba(0, 0, 0, 0.75);
+}
+
+.wechat-phone-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 46px;
+  overflow: hidden;
+  position: relative;
 }
 
 .wechat-dynamic-island {
@@ -848,25 +861,6 @@
   box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.1);
 }
 
-/* 书单卡片插入弹窗：单行输入框 */
-.wechat-book-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  font-size: 14px;
-  font-family: inherit;
-  background: var(--background-primary);
-  color: var(--text-normal);
-  transition: border-color 0.15s ease;
-}
-
-.wechat-book-input:focus {
-  outline: none;
-  border-color: var(--interactive-accent);
-  box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.1);
-}
-
 .wechat-digest-counter {
   display: block;
   text-align: right;
@@ -978,8 +972,15 @@
     min-height: 100% !important;
     max-width: 100% !important;
     max-height: 100% !important;
+    padding: 0 !important;
+    background: none !important;
+    border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+  }
+
+  .wechat-phone-screen {
+    border-radius: 0 !important;
   }
 
   .wechat-dynamic-island {
@@ -1003,8 +1004,106 @@
   }
 }
 
-@media (max-height: 860px) {
+@media (max-height: 900px) {
   .wechat-preview-wrapper.mode-phone {
     padding: 12px;
   }
+}
+
+/* ====== AI 排版对比切换条 ====== */
+.wechat-ai-bar {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+
+.wechat-ai-bar:not(:empty) {
+  display: flex;
+}
+
+.wechat-ai-bar-btn {
+  padding: 3px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.wechat-ai-bar-btn.active {
+  background: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.wechat-ai-bar-btn.wechat-ai-bar-write {
+  margin-left: auto;
+  color: var(--text-normal);
+}
+
+.wechat-ai-bar-btn.wechat-ai-bar-close {
+  border: none;
+  padding: 3px 6px;
+}
+
+/* ====== AI 排版设置输入框 ====== */
+.wechat-ai-setting-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.wechat-ai-setting-label {
+  flex-shrink: 0;
+  width: 52px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.wechat-text-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+}
+
+.wechat-ai-setting-hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* ====== AI 排版常驻进度条 ====== */
+.wechat-notice.wechat-ai-status {
+  /* 覆盖 .wechat-notice 的 2.5s 自动淡出动画——进度条由 JS 控制显隐，必须常驻 */
+  animation: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.wechat-ai-spinner {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: wechat-ai-spin 0.8s linear infinite;
+}
+
+@keyframes wechat-ai-spin {
+  to { transform: rotate(360deg); }
 }
