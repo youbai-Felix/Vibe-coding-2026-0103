@@ -1,6 +1,31 @@
 import { marked } from "marked";
 import type { ThemeConfig } from "./themes";
 
+// ====== ==高亮== 语法：marked 不原生支持，注册自定义 mark 行内 token ======
+const highlightExtension = {
+  name: "mark",
+  level: "inline" as const,
+  start(src: string) {
+    return src.indexOf("==");
+  },
+  tokenizer(src: string) {
+    const match = /^==(?=\S)([\s\S]*?\S)==/.exec(src);
+    if (match) {
+      const token = {
+        type: "mark",
+        raw: match[0],
+        text: match[1],
+        tokens: [] as any[],
+      };
+      this.lexer.inline(token.text, token.tokens);
+      return token;
+    }
+    return undefined;
+  },
+};
+marked.use({ extensions: [highlightExtension as any] });
+
+
 // ====== 盘古之白 ======
 
 function addPanGu(html: string): string {
@@ -160,6 +185,26 @@ function renderBlockquote(lines: string[], theme: ThemeConfig): string {
     return `<blockquote style="margin: 36px 0; padding: 16px 20px; border-left: 8px solid #0055A4; border-top: 2px solid #1A1A1A; border-bottom: 2px solid #1A1A1A; border-right: 2px solid #1A1A1A; background-color: #EAEAEA;"><p style="font-size: 17px; color: #1A1A1A; line-height: 1.75; margin: 0; font-weight: 900; letter-spacing: 0.5px;">${content}</p></blockquote>`;
   }
   const fontStyle = isApple ? " font-style: italic;" : "";
+  if (theme.name === "陶笺") {
+    // 陶笺引用：2px 陶土竖线 + 18px 缩进，15px 宋体柔灰，无底色；
+    // 末行以 — / —— 开头视为出处（cite），转 12.5px 灰小字并统一补「— 」前缀。
+    // 不用 blockquote（编辑器会补默认灰边框），内层全 span 防广告插入
+    let lines = content.split(/<br\s*\/?>/);
+    let cite = "";
+    const last = (lines[lines.length - 1] || "").trim();
+    if (/^[—–]{1,2}\s*\S/.test(last)) {
+      cite = last.replace(/^[—–]{1,2}\s*/, "");
+      lines.pop();
+    }
+    const body = lines.join("<br>").trim();
+    const bodyHtml = body
+      ? `<span style="display: block; font-family: ${TAO_SERIF}; font-size: 15px; line-height: 1.85; color: ${theme.textLight}; margin: 0;">${body}</span>`
+      : "";
+    const citeHtml = cite
+      ? `<span style="display: block; margin-top: 10px; font-family: ${theme.fontFamily}; font-size: 12.5px; color: #A8A49C;">— ${cite}</span>`
+      : "";
+    return `<section style="margin: 28px 0 0 0; padding-left: 18px; border-left: 2px solid ${theme.quoteBorder};">${bodyHtml}${citeHtml}</section>`;
+  }
   return `<blockquote style="margin: 24px 0 0 0; padding: 4px 16px; border-left: 3px solid ${theme.quoteBorder};"><p style="font-size: ${theme.baseFontSize}; color: ${theme.textLight}; line-height: ${theme.lineHeight}; margin: 0;${fontStyle}">${content}</p></blockquote>`;
 }
 
@@ -241,7 +286,7 @@ function isDiaTheme(theme: ThemeConfig): boolean {
 }
 
 // Dia 系列配色：品牌渐变（横/竖两个方向）+ 引用块浅底渐变，未配置时回退珊瑚粉默认
-function diaGrad(theme: ThemeConfig): { grad120: string; grad180: string; quote: string; tint0: string; c0: string } {
+function diaGrad(theme: ThemeConfig): { grad120: string; grad180: string; quote: string; tint0: string; c0: string; c1: string; c2: string } {
   const g = theme.diaGradient ?? ["#F8567F", "#FF8A5B", "#FFC46B"];
   const t = theme.diaQuoteTints ?? ["#FFF0F3", "#FFF3EC", "#FFF8EC"];
   return {
@@ -250,6 +295,8 @@ function diaGrad(theme: ThemeConfig): { grad120: string; grad180: string; quote:
     quote: `linear-gradient(120deg, ${t[0]} 0%, ${t[1]} 60%, ${t[2]} 100%)`,
     tint0: t[0],
     c0: g[0],
+    c1: g[1],
+    c2: g[2],
   };
 }
 
@@ -280,12 +327,13 @@ function renderStyleHeading(text: string, level: number, theme: ThemeConfig): st
   let decoration = "";
   let extra = "";
 
-  // 百年孤独：橙 #F89A3A 居中粗体，各级标题统一风格（拆解自原文 h1）
+  // 百年孤独：橙 #F89A3A 粗体，各级标题统一风格（居中跟随「标题居中」开关）
   if (n === "百年孤独") {
     const sizes: Record<number, string> = { 1: "22px", 2: "18px", 3: "15px" };
     const mts: Record<number, string> = { 1: "32px", 2: "28px", 3: "24px" };
     const ls = level === 1 ? "-0.03em" : "-0.02em";
-    return `<section style="margin-top: ${mts[level] || "28px"}; margin-bottom: 20px;"><section style="font-size: ${sizes[level] || "16px"}; font-weight: ${hw}; color: ${theme.headingColor}; line-height: 1.4; letter-spacing: ${ls}; text-align: center;${sans}">${text}</section></section>`;
+    const align = (theme as any).centerHeading ? " text-align: center;" : "";
+    return `<section style="margin-top: ${mts[level] || "28px"}; margin-bottom: 20px;"><section style="font-size: ${sizes[level] || "16px"}; font-weight: ${hw}; color: ${theme.headingColor}; line-height: 1.4; letter-spacing: ${ls};${align}${sans}">${text}</section></section>`;
   }
 
   // 朱砂笺：H1 宋体 22px 墨色 + 5px 朱红左竖线；H2 18px 深朱红 + 前置 8px 圆点；H3 16px 墨色 + 6px 圆点
@@ -304,7 +352,7 @@ function renderStyleHeading(text: string, level: number, theme: ThemeConfig): st
     const dot = center
       ? ""
       : `<span style="display: inline-block; width: ${dotSize}; height: ${dotSize}; background-color: #B8452F; border-radius: 50%; margin-right: 9px; vertical-align: middle;"></span>`;
-    return `<section style="margin-top: ${level === 2 ? "30px" : "24px"}; margin-bottom: 14px;"><section style="font-size: ${sizes[level] || "16px"}; font-weight: 600; color: ${colors[level] || "#2B2926"}; line-height: 1.5;${sans}">${dot}${text}</section></section>`;
+    return `<section style="margin-top: ${level === 2 ? "30px" : "24px"}; margin-bottom: 14px;"><section style="font-size: ${sizes[level] || "16px"}; font-weight: 600; color: ${colors[level] || "#2B2926"}; line-height: 1.5;${align}${sans}">${dot}${text}</section></section>`;
   }
 
   // Dia：H1 22px + 6px 三段渐变竖条（圆角 6px，字距 -0.3px）；H2 17.5px 套系色 + 9px 渐变圆点；H3 16px + 小渐变圆点
@@ -314,15 +362,30 @@ function renderStyleHeading(text: string, level: number, theme: ThemeConfig): st
       `<span style="display: inline-block; width: ${size}; height: ${size}; border-radius: 50%; background-image: ${dg.grad120}; margin-right: ${mr}; vertical-align: middle;"></span>`;
     const center: boolean = (theme as any).centerHeading;
     const h1Style: string = (theme as any).diaH1Style || "bar";
-    // 渐变文字填充（background-clip: text）的装饰字符：▶ 播放三角 / ⏏ 旋转90°右向箭头
-    const gradGlyph = (glyph: string, rotate: boolean) =>
-      `<span style="display: inline-block; font-size: 15px; line-height: 1; margin-right: 9px;${rotate ? " transform: rotate(90deg);" : ""} background-image: ${dg.grad120}; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">${glyph}</span>`;
+    // 渐变文字填充（background-clip: text）的装饰字符：▶ 播放三角 / ⏏ 旋转90°右向箭头。
+    // 旋转款必须拆两层：外层只 transform，内层只渐变填充——两者同元素会互相干扰致渐变丢失
+    const gradGlyph = (glyph: string, rotate: boolean) => {
+      const inner = `<span style="background-image: ${dg.grad120}; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">${glyph}</span>`;
+      return rotate
+        ? `<span style="display: inline-block; font-size: 15px; line-height: 1; margin-right: 9px; transform: rotate(90deg);">${inner}</span>`
+        : `<span style="display: inline-block; font-size: 15px; line-height: 1; margin-right: 9px; background-image: ${dg.grad120}; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">${glyph}</span>`;
+    };
     if (level === 1) {
       const align = center ? " text-align: center;" : "";
-      // 渐变胶囊：整块渐变底白字居中；不用 width:fit-content（公众号支持不稳），
-      // 用「外层 text-align:center + 内层 inline-block」的等价粘贴安全写法
+      // 填色标签条：浅底渐变卡 + 左缘 5px 渐变竖条。竖条负边距拉通卡片全高、
+      // 左侧圆角贴合卡片左缘弧度（参考 CSS：border-radius 18px 0 0 18px）
+      if (h1Style === "label") {
+        return `<section style="margin-top: 36px; margin-bottom: 18px;"><section style="border-radius: 18px; background-image: ${dg.quote}; padding: 12px 20px 12px 0;"><section style="display: flex; align-items: stretch;"><section style="flex-shrink: 0; width: 5px; border-radius: 18px 0 0 18px; background-image: ${dg.grad180}; margin: -12px 15px -12px 0;"></section><section style="flex: 1; font-size: 22px; font-weight: 700; color: #1D1D1F; line-height: 1.5; letter-spacing: -0.3px;${sans}${align}">${text}</section></section></section></section>`;
+      }
+      // 渐变文字：标题文字本身渐变填充。span 用 inline-block（同 ▶/⏏ 字符的已验证
+      // 结构），居中时三层（外层 section/内层 section/span）都挂 text-align 确保生效
+      if (h1Style === "gradtext") {
+        return `<section style="margin-top: 36px; margin-bottom: 18px;${align}"><section style="font-size: 22px; font-weight: 700; line-height: 1.5; letter-spacing: -0.3px;${align}${sans}"><span style="display: inline-block;${align} background-image: ${dg.grad120}; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">${text}</span></section></section>`;
+      }
+      // 渐变方块：整块渐变底白字；居中跟随「标题居中」开关；不用 width:fit-content
+      // （公众号支持不稳），用「外层 text-align + 内层 inline-block」的等价粘贴安全写法
       if (h1Style === "pill") {
-        return `<section style="margin-top: 36px; margin-bottom: 18px; text-align: center;"><section style="display: inline-block; padding: 9px 22px; border-radius: 10px; background-image: ${dg.grad120}; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); font-size: 22px; font-weight: 700; color: #FFFFFF; line-height: 1.5; letter-spacing: -0.3px;${sans}">${text}</section></section>`;
+        return `<section style="margin-top: 36px; margin-bottom: 18px;${align}"><section style="display: inline-block; padding: 9px 22px; border-radius: 10px; background-image: ${dg.grad120}; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); font-size: 22px; font-weight: 700; color: #FFFFFF; line-height: 1.5; letter-spacing: -0.3px;${sans}">${text}</section></section>`;
       }
       // 装饰无条件显示（原竖条版行为：居中只影响文字对齐，不隐藏装饰）
       const lead =
@@ -336,7 +399,8 @@ function renderStyleHeading(text: string, level: number, theme: ThemeConfig): st
     const sizes: Record<number, string> = { 2: "17.5px", 3: "16px" };
     const colors: Record<number, string> = { 2: theme.boldColor, 3: "#1D1D1F" };
     const dot = center ? "" : level === 2 ? gradDot("9px", "9px") : gradDot("6px", "9px");
-    return `<section style="margin-top: ${level === 2 ? "28px" : "24px"}; margin-bottom: 14px;"><section style="font-size: ${sizes[level] || "16px"}; font-weight: 600; color: ${colors[level] || "#1D1D1F"}; line-height: 1.5;${sans}">${dot}${text}</section></section>`;
+    const alignH23 = center ? " text-align: center;" : "";
+    return `<section style="margin-top: ${level === 2 ? "28px" : "24px"}; margin-bottom: 14px;"><section style="font-size: ${sizes[level] || "16px"}; font-weight: 600; color: ${colors[level] || "#1D1D1F"}; line-height: 1.5;${alignH23}${sans}">${dot}${text}</section></section>`;
   }
 
   // 飘：橙红 #E2561B 粗体 + 左竖线（h1 粗，h3 浅橙），拆解自《飘》读书文
@@ -419,18 +483,34 @@ function renderStyleBlockquote(content: string, theme: ThemeConfig): string {
   const serif = "font-family: Georgia, 'Songti SC', 'STSong', serif;";
   if (isDiaTheme(theme)) {
     // 引用卡用 section 而非 blockquote：编辑器会给 blockquote 补默认灰左边框且行内样式盖不住。
-    // 左"边框"= 7px 渐变竖条贴住卡片左边缘（padding-left: 0），竖条用 flex 行内
-    // 「flex-shrink: 0 空竖条 + 带文字兄弟 section」的已验证粘贴安全结构
+    // card = 浅底渐变卡 + 贴边渐变竖条；quote = 大引号极简（无底色）；
+    // bar = 极简左粗边（无底色）。竖条/大引号均用 flex 内层粘贴安全结构
     const dg = diaGrad(theme);
     const parts = content.split("<br>");
     let cite = "";
     if (parts.length > 1 && /^(-{2,}|—)/.test(parts[parts.length - 1].trim())) {
       cite = parts.pop()!.trim();
     }
+    const quoteStyle: string = (theme as any).diaQuoteStyle || "card";
+    const citeColor = quoteStyle === "card" || quoteStyle === "cardquote" ? "#A6A1AB" : "#A3A3AA";
+    const citeSize = quoteStyle === "card" || quoteStyle === "cardquote" ? "13.5px" : "12.5px";
     const citeHtml = cite
-      ? `<span style="display: block; margin-top: 12px; font-size: 13.5px; color: #A6A1AB;">${cite}</span>`
+      ? `<span style="display: block; margin-top: 8px; font-size: ${citeSize}; color: ${citeColor}; text-align: right;">${cite}</span>`
       : "";
-    return `<section style="margin: 24px 0 0 0; border-radius: 16px; background-image: ${dg.quote}; padding: 22px 26px 22px 0;"><section style="display: flex; align-items: stretch;"><section style="flex-shrink: 0; width: 4px; border-radius: 0 4px 4px 0; background-image: ${dg.grad180}; margin: -6px 18px -6px 0;"></section><section style="flex: 1;"><p style="margin: 0; font-size: 16px; line-height: 1.9; color: #33333A;">${parts.join("<br>")}</p>${citeHtml}</section></section></section>`;
+    const mark = `<span style="display: inline-block; font-family: Georgia, 'Times New Roman', serif; font-size: 56px; line-height: 1; margin: -2px 10px -16px 0; background-image: ${dg.grad120}; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">“</span>`;
+    if (quoteStyle === "quote") {
+      return `<section style="margin: 24px 0 0 0; display: flex; align-items: flex-start;">${mark}<section style="flex: 1;"><span style="display: block; font-size: 15.5px; line-height: 1.85; color: #55505A;">${parts.join("<br>")}</span>${citeHtml}</section></section>`;
+    }
+    if (quoteStyle === "cardquote") {
+      // 渐变卡片 + 大引号：嵌套 section 结构（表格版会被公众号粘贴拆解）。
+      // 防广告拆卡：正文用 span 而非 p——广告算法在段落级元素（p/section）边界插入，
+      // 卡内全部用行内元素可减少卡内插入点
+      return `<section style="margin: 24px 0 0 0; border-radius: 16px; background-image: ${dg.quote}; padding: 18px 26px 18px 12px;"><section style="display: flex; align-items: flex-start;">${mark}<section style="flex: 1;"><span style="display: block; font-size: 16px; line-height: 1.9; color: #33333A;">${parts.join("<br>")}</span>${citeHtml}</section></section></section>`;
+    }
+    if (quoteStyle === "bar") {
+      return `<section style="margin: 24px 0 0 0; display: flex; align-items: stretch;"><section style="flex-shrink: 0; width: 4px; border-radius: 4px; background-image: ${dg.grad180}; margin-right: 14px;"></section><section style="flex: 1;"><span style="display: block; font-size: 15.5px; line-height: 1.85; color: #55505A;">${parts.join("<br>")}</span>${citeHtml}</section></section>`;
+    }
+    return `<section style="margin: 24px 0 0 0; border-radius: 16px; background-image: ${dg.quote}; padding: 22px 26px 22px 0;"><section style="display: flex; align-items: stretch;"><section style="flex-shrink: 0; width: 4px; border-radius: 0 4px 4px 0; background-image: ${dg.grad180}; margin: -6px 18px -6px 0;"></section><section style="flex: 1;"><span style="display: block; font-size: 16px; line-height: 1.9; color: #33333A;">${parts.join("<br>")}</span>${citeHtml}</section></section></section>`;
   }
   if (n === "朱砂笺") {
     return `<blockquote style="margin: 24px 0 0 0; background-color: #FAF6EE; border-left: 4px solid #B8452F; border-radius: 0 10px 10px 0; padding: 16px 18px;"><span style="display: block; font-size: 32px; line-height: 1; color: #D9C0A8; margin: -4px 0 -18px -2px;${serif}">“</span><p style="font-size: 15px; color: #57534D; line-height: 1.9; margin: 0;${serif}">${content}</p></blockquote>`;
@@ -615,13 +695,60 @@ function centerizeDecoration(decoration: string): string {
     .replace(/padding-left:\s*[^;]+;/, "padding-bottom: 6px;");
 }
 
-function renderHeading(text: string, level: number, theme: ThemeConfig): string {
+// ====== 陶笺自动眉题：PART ONE · 开篇 → 拂晓…灯下 → PART END · 终章 ======
+// 首个 H1 固定「开篇」，末个固定「PART END · 终章」（英文部分不用序数词），
+// 中间按出现顺序轮换词组（读书的一天），词组用尽只留 PART N。
+// 手写 <span class="kicker"> 覆盖该节，不影响其他节编号。
+const TAO_KICKERS = ["拂晓", "日升", "亭午", "斜阳", "灯下"];
+const EN_ORDINALS = [
+  "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN",
+  "ELEVEN", "TWELVE", "THIRTEEN", "FOURTEEN", "FIFTEEN", "SIXTEEN", "SEVENTEEN", "EIGHTEEN", "NINETEEN", "TWENTY",
+];
+function taoAutoKicker(pos: number, total: number): string {
+  if (pos === total && total > 1) return "PART END · 终章";
+  const ordinal = EN_ORDINALS[pos - 1] || String(pos);
+  const word = pos === 1 ? "开篇" : TAO_KICKERS[pos - 2];
+  return word ? `PART ${ordinal} · ${word}` : `PART ${ordinal}`;
+}
+
+// 眉题中文疏排：相邻汉字之间插一个空格（拉丁与标点不动，已有空格不重复加）
+function spreadCJK(s: string): string {
+  return s.replace(/([\u4e00-\u9fff])(?=[\u4e00-\u9fff])/g, "$1 ");
+}
+
+// 陶笺衬线栈：安卓没有 Songti/SimSun，不加安卓候选会整体回退成无衬线黑体（微信安卓实测）；
+// Noto Serif CJK SC / Source Han Serif SC（思源宋体系）是安卓可命中的衬线，兜底 serif
+const TAO_SERIF =
+  "Georgia, 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', 'Source Han Serif SC', 'Noto Serif SC', serif";
+
+function renderHeading(text: string, level: number, theme: ThemeConfig, kicker: string = ""): string {
   if (isBookTheme(theme)) return renderBookHeading(text, level, theme);
   if (isStyleTheme(theme)) return renderStyleHeading(text, level, theme);
   const isApple = theme.name === "苹果";
   const isBauhaus = theme.name === "包豪斯";
   const isClassical = theme.name === "古典科技";
+  const isTao = theme.name === "陶笺";
   const hw = theme.headingWeight || "600";
+  if (isTao) {
+    // 陶笺：衬线标题。H1 = 小标签眉题（kicker，陶土色无衬线小字）+ 27px 主标题
+    const center: boolean = (theme as any).centerHeading;
+    const align = center ? " text-align: center;" : "";
+    const serif = `font-family: ${TAO_SERIF};`;
+    if (level === 1) {
+      // 防广告：眉题与标题都行内元素化（span display:block），卡内无 p/section 边界，
+      // 广告无法插在眉题和标题之间（广告在段落级元素边界插入），只能挤到标题块外。
+      // 字重 700：安卓字体常缺 600 档会回退变细，700 两端稳定；iOS PingFang 无 700
+      // 自动回落 Semibold，眉题在 iOS 视觉与 600 相同
+      const kickerHtml = kicker
+        ? `<span style="display: block; font-family: ${theme.fontFamily}; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: ${theme.accent}; font-weight: 700; margin: 0 0 11px;${align}">${spreadCJK(kicker)}</span>`
+        : "";
+      return `<section style="margin: 48px 0 20px;">${kickerHtml}<span style="display: block; font-size: 27px; font-weight: ${hw}; color: ${theme.headingColor}; line-height: 1.3; letter-spacing: -0.2px; ${serif}${align}">${text}</span></section>`;
+    }
+    if (level === 2) {
+      return `<section style="margin: 36px 0 14px;"><section style="font-size: 21px; font-weight: ${hw}; color: ${theme.headingColor}; line-height: 1.4; letter-spacing: -0.2px; ${serif}${align}">${text}</section></section>`;
+    }
+    return `<section style="margin: 28px 0 10px;"><section style="font-size: 17px; font-weight: ${hw}; color: ${theme.headingColor}; line-height: 1.4; ${serif}${align}">${text}</section></section>`;
+  }
   const sizes: Record<number, { size: string; weight: string; color: string }> = {
     1: { size: "22px", weight: hw, color: theme.headingColor },
     2: { size: "19px", weight: hw, color: theme.headingColor },
@@ -705,6 +832,10 @@ function renderBold(text: string, theme: ThemeConfig): string {
   if (isBookTheme(theme)) return renderBookBold(text, theme);
   if (isStyleTheme(theme)) return renderStyleBold(text, theme);
   const isBauhaus = theme.name === "包豪斯";
+  if (theme.name === "陶笺") {
+    // 700：安卓 600 档缺失会回退变细；iOS PingFang 无 700 自动回落 Semibold，视觉不变
+    return `<strong style="font-weight: 700; color: ${theme.boldColor};">${text}</strong>`;
+  }
   const weight = isBauhaus ? "900" : "700";
   return `<strong style="font-weight: ${weight}; color: ${theme.boldColor};">${text}</strong>`;
 }
@@ -713,12 +844,25 @@ function renderItalic(text: string): string {
   return `<em>${text}</em>`;
 }
 
+// ==高亮==：加粗的基础上颜色换主题色（不用 <mark>，公众号会剥掉）
+function renderHighlight(text: string, theme: ThemeConfig): string {
+  if (theme.name === "陶笺") {
+    return `<strong style="font-weight: 700; color: ${theme.highlightText};">${text}</strong>`;
+  }
+  const isBauhaus = theme.name === "包豪斯";
+  const weight = isBauhaus ? "900" : "700";
+  return `<strong style="font-weight: ${weight}; color: ${theme.highlightText};">${text}</strong>`;
+}
+
 function renderInlineCode(text: string, theme: ThemeConfig): string {
   const isApple = theme.name === "苹果";
   const isBauhaus = theme.name === "包豪斯";
   const isClassical = theme.name === "古典科技";
   const isZhusha = theme.name === "朱砂笺";
   const isDia = isDiaTheme(theme);
+  if (theme.name === "陶笺") {
+    return `<span style="font-family: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace; font-size: 13.5px; color: ${theme.codeText}; background-color: ${theme.codeBg}; padding: 1px 6px; border-radius: 5px; border: 1px solid ${theme.border};">${text}</span>`;
+  }
   if (isZhusha) {
     return `<span style="font-family: 'Menlo', Monaco, Consolas, monospace; font-size: 13px; color: #2C2A27; background-color: #F0EADD; padding: 2px 5px; border-radius: 3px;">${text}</span>`;
   }
@@ -747,6 +891,7 @@ function renderUnorderedList(
   const isBauhaus = theme.name === "包豪斯";
   const isZhusha = theme.name === "朱砂笺";
   const isDia = isDiaTheme(theme);
+  const isTao = theme.name === "陶笺";
   const rendered = items.map((content, i) => {
     // 任务列表检测：检查原始行是否以 - [ ] 或 - [x] 开头
     const raw = rawLines?.[i] || "";
@@ -760,6 +905,10 @@ function renderUnorderedList(
       return `<section style="display: flex; align-items: flex-start; margin-bottom: 10px;">${checkbox}<span style="font-size: ${theme.baseFontSize}; line-height: ${theme.lineHeight}; ${textColor}">${content}</span></section>`;
     }
 
+    if (isTao) {
+      // 陶笺：极简小圆点用真实 ● 字符（空 span 装饰点会被公众号剥掉），悬挂缩进
+      return `<section style="margin: 0 0 14px; padding-left: 22px; text-indent: -22px;"><span style="color: ${theme.bulletColor}; font-size: 8px; vertical-align: 3px; margin-right: 9px;">●</span><span style="font-size: ${theme.baseFontSize}; line-height: 1.75; color: ${theme.text};">${content}</span></section>`;
+    }
     if (isChunmu) {
       return `<section style="display: flex; align-items: flex-start; margin-bottom: 15px;"><section style="margin-right: 12px; margin-top: 8px; flex-shrink: 0; width: 6.5px; height: 6.5px; border: 1.5px solid #1F6E43; border-radius: 50%; box-sizing: border-box; background-color: #F0F7F2; box-shadow: 0 0 0 4px #D8ECD8;"></section><span style="color: #3A332F; line-height: 1.7; font-size: ${theme.baseFontSize};">${content}</span></section>`;
     }
@@ -791,6 +940,10 @@ function renderOrderedList(
   const isDia = isDiaTheme(theme);
   const rendered = items.map((content, i) => {
     const num = String(i + 1);
+    if (theme.name === "陶笺") {
+      // 陶笺：悬挂衬线序号，陶土色，无底色徽章
+      return `<section style="margin: 0 0 14px; padding-left: 34px; text-indent: -34px;"><span style="font-family: ${TAO_SERIF}; font-size: ${theme.baseFontSize}; font-weight: 700; color: ${theme.numText}; margin-right: 10px;">${num}</span><span style="font-size: ${theme.baseFontSize}; line-height: 1.75; color: ${theme.text};">${content}</span></section>`;
+    }
     if (isDia) {
       return `<section style="display: flex; align-items: flex-start; margin-bottom: 15px;"><section style="flex-shrink: 0; width: 26px; height: 26px; border-radius: 9px; background-image: ${diaGrad(theme).grad120}; display: flex; align-items: center; justify-content: center; margin-right: 14px; margin-top: 2px;"><span style="font-size: 13px; font-weight: 700; color: #FFFFFF; font-family: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;">${num}</span></section><span style="font-size: ${theme.baseFontSize}; line-height: 1.72; color: ${theme.text};">${content}</span></section>`;
     }
@@ -819,11 +972,18 @@ function renderCodeBlock(code: string, theme: ThemeConfig): string {
   const border = isChunmu ? "1px solid #EBE3D5" : "none";
   const escaped = esc(code).replace(/\n/g, "<br>");
 
+  if (theme.name === "陶笺") {
+    // 陶笺：浅米底 + 发丝边框圆角卡；内层用 span display:block 防广告插入
+    return `<section style="margin: 26px 0 0 0; background-color: ${theme.codeBg}; border: 1px solid ${theme.border}; border-radius: ${theme.codeBlockRadius}; padding: 18px 20px;"><span style="display: block; margin: 0; font-family: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace; font-size: 13px; line-height: 1.75; color: ${theme.codeBlockText};">${escaped}</span></section>`;
+  }
+
   if (isDia) {
     // 左上角三个圆点 = 主题渐变三停色，用带真实文字的 ● 字符实现（空 span 装饰点会被公众号剥掉）
+    // 防广告拆卡：内部圆点行与代码体用 span 而非 section——广告算法在段落级元素（p/section）
+    // 边界插入，卡内全用行内元素可把广告挤出代码卡外
     const [c1, c2, c3] = theme.diaGradient ?? ["#F8567F", "#FF8A5B", "#FFC46B"];
     const dot = (c: string, mr: string) => `<span style="color: ${c}; font-size: 9px;${mr}">●</span>`;
-    return `<section style="margin: 24px 0 0 0; background-color: #F7F7F4; border: 1px solid #EDEDEA; border-radius: 16px; padding: 16px 18px 18px;"><section style="margin: 0 0 10px 0; line-height: 1;">${dot(c1, " margin-right: 5px;")}${dot(c2, " margin-right: 5px;")}${dot(c3, "")}</section><section style="display: block; margin: 0; font-family: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace; font-size: 13px; line-height: 1.72; color: #3A3A40;">${escaped}</section></section>`;
+    return `<section style="margin: 24px 0 0 0; background-color: #F7F7F4; border: 1px solid #EDEDEA; border-radius: 16px; padding: 16px 18px 18px;"><span style="display: block; margin: 0 0 10px 0; line-height: 1;">${dot(c1, " margin-right: 5px;")}${dot(c2, " margin-right: 5px;")}${dot(c3, "")}</span><span style="display: block; margin: 0; font-family: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace; font-size: 13px; line-height: 1.72; color: #3A3A40;">${escaped}</span></section>`;
   }
 
   if (isZhusha) {
@@ -850,6 +1010,11 @@ function renderHr(theme: ThemeConfig): string {
   const isBauhaus = theme.name === "包豪斯";
   const isZhusha = theme.name === "朱砂笺";
   const isDia = isDiaTheme(theme);
+  if (theme.name === "陶笺") {
+    // 陶笺：居中三点极简，● 字符实现（粘贴安全）
+    const dot = (mr: string) => `<span style="color: #A8A49C; font-size: 6px;${mr}">●</span>`;
+    return `<section style="margin: 44px 0 0 0; text-align: center;">${dot(" margin-right: 10px;")}${dot(" margin-right: 10px;")}${dot("")}</section>`;
+  }
   if (isBauhaus) {
     return `<section style="margin: 40px 0;"><section style="border-top: 4px solid #1A1A1A;"></section></section>`;
   }
@@ -859,7 +1024,18 @@ function renderHr(theme: ThemeConfig): string {
     return `<section style="margin: 34px 0; position: relative; text-align: center;"><section style="position: absolute; top: 50%; left: 0; right: 0; border-top: 1px solid #E7DDCD;"></section><section style="display: inline-block; position: relative; padding: 0 16px; background-color: ${theme.background};">${dot("◆")}${gap}${dot("◆")}${gap}${dot("◆")}</section></section>`;
   }
   if (isDia) {
-    return `<section style="margin: 34px auto; text-align: center;"><section style="display: inline-block; width: 36px; height: 5px; border-radius: 5px; background-image: ${diaGrad(theme).grad120};"></section></section>`;
+    const dg = diaGrad(theme);
+    const hrStyle: string = (theme as any).diaHrStyle || "capsule";
+    if (hrStyle === "dots") {
+      // 三点渐变：mask 方案不粘贴安全，用三个停点色 ● 字符等价实现
+      const dot = (c: string, mr: string) => `<span style="color: ${c}; font-size: 9px;${mr}">●</span>`;
+      return `<section style="margin: 34px auto; text-align: center;">${dot(dg.c0, " margin-right: 9px;")}${dot(dg.c1, " margin-right: 9px;")}${dot(dg.c2, "")}</section>`;
+    }
+    if (hrStyle === "fade") {
+      // 全宽渐隐线：CSS mask 渐隐改写为透明端内嵌进渐变本身（单层背景，粘贴安全）
+      return `<section style="margin: 34px auto;"><section style="height: 2px; border-radius: 2px; background-image: linear-gradient(90deg, transparent, ${dg.c0} 20%, ${dg.c1} 50%, ${dg.c2} 80%, transparent);"></section></section>`;
+    }
+    return `<section style="margin: 34px auto; text-align: center;"><section style="display: inline-block; width: 36px; height: 5px; border-radius: 5px; background-image: ${dg.grad120};"></section></section>`;
   }
   const color = isApple ? "#F5F5F7" : theme.name === "春木培土" ? "#eee" : theme.headingBorder;
   return `<section style="margin: 30px 0;"><section style="border-top: 1px solid ${color};"></section></section>`;
@@ -951,9 +1127,11 @@ export interface ConvertOptions {
   centerHeading?: boolean;
   imageCaption?: boolean;
   diaH1Style?: string;
+  diaQuoteStyle?: string;
+  diaHrStyle?: string;
 }
 
-export function buildConvertOptions(s: { fontSize: string; fontFamily: string; accentColor: string; sideMargin: number; centerHeading: boolean; imageCaption: boolean; diaH1Style?: string }, fontFamilyMap: Record<string, { label: string; value: string }>, resolveImage?: (src: string) => string): ConvertOptions {
+export function buildConvertOptions(s: { fontSize: string; fontFamily: string; accentColor: string; sideMargin: number; centerHeading: boolean; imageCaption: boolean; diaH1Style?: string; diaQuoteStyle?: string; diaHrStyle?: string }, fontFamilyMap: Record<string, { label: string; value: string }>, resolveImage?: (src: string) => string): ConvertOptions {
   return {
     resolveImage,
     fontSize: s.fontSize,
@@ -963,6 +1141,8 @@ export function buildConvertOptions(s: { fontSize: string; fontFamily: string; a
     centerHeading: s.centerHeading,
     imageCaption: s.imageCaption,
     diaH1Style: s.diaH1Style,
+    diaQuoteStyle: s.diaQuoteStyle,
+    diaHrStyle: s.diaHrStyle,
   };
 }
 
@@ -1042,8 +1222,11 @@ export function markdownToWechatHTML(
   const t = { ...theme };
   // 标题居中（运行时挂到 theme，各标题 render 函数读取，避免改一堆函数签名）
   (t as any).centerHeading = options?.centerHeading ?? false;
-  // Dia 系列一级标题装饰样式（bar/triangle/arrow）
+  // Dia 系列一级标题装饰样式（bar/triangle/arrow/pill/label/gradtext）
   (t as any).diaH1Style = options?.diaH1Style ?? "bar";
+  // Dia 系列引用样式（card/quote/bar）与分割线样式（capsule/dots/fade）
+  (t as any).diaQuoteStyle = options?.diaQuoteStyle ?? "card";
+  (t as any).diaHrStyle = options?.diaHrStyle ?? "capsule";
   // 图片下方标注（默认不显示，读取图片 alt 作为标注文字）
   (t as any).imageCaption = options?.imageCaption ?? false;
   if (options?.fontSize) t.baseFontSize = options.fontSize;
@@ -1062,11 +1245,17 @@ export function markdownToWechatHTML(
     t.headingBorder = options.accentColor;
     t.boldColor = options.accentColor;
   }
-  const sideMargin = options?.sideMargin ?? 15;
+  const sideMargin = options?.sideMargin ?? 10;
   const resolveImage = options?.resolveImage;
   // 预处理
   let processedMd = stripFrontmatter(markdown);
   processedMd = preprocessWikiLinkImages(processedMd);
+  // 眉题（kicker）：标题里的 <span class="kicker">…</span> 转纯文本标记——
+  // class 样式过不了公众号（要换成行内样式），裸 HTML 又会被当文本转义
+  processedMd = processedMd.replace(
+    /<span\s+class=["']kicker["']\s*>([\s\S]*?)<\/span>/g,
+    "【眉题】$1【/眉题】"
+  );
 
   // 用 marked 解析 Markdown 为 token 树
   const tokens = marked.lexer(processedMd);
@@ -1074,14 +1263,31 @@ export function markdownToWechatHTML(
   // 遍历 token 树生成微信 HTML
   const parts: string[] = [];
   const ri = resolveImage;
+  let h1Index = 0;
+  // 眉题需要「终章」定位末个 H1，先数出全文 H1 总数
+  const h1Total = tokens.filter((tk: any) => tk.type === "heading" && tk.depth === 1).length;
 
   for (const token of tokens) {
     switch (token.type) {
-      case "heading":
-        parts.push(
-          renderHeading(renderInlineTokens(token.tokens, t, ri), token.depth, t)
-        );
+      case "heading": {
+        // 眉题三态：手写非空 span > 自动（陶笺按 H1 位置）> 手写空 span（抑制）。
+        // 标记所有主题都提取剥除，仅陶笺渲染眉题
+        let h = renderInlineTokens(token.tokens, t, ri);
+        let kicker: string | null = null;
+        const km = h.match(/【眉题】([\s\S]*?)【\/眉题】/);
+        if (km) {
+          kicker = km[1].trim();
+          h = h.replace(/【眉题】[\s\S]*?【\/眉题】/, "").trim();
+        }
+        if (token.depth === 1) {
+          h1Index++;
+          if (t.name === "陶笺" && kicker === null) {
+            kicker = taoAutoKicker(h1Index, h1Total);
+          }
+        }
+        parts.push(renderHeading(h, token.depth, t, kicker ?? ""));
         break;
+      }
       case "paragraph": {
         const text = renderInlineTokens(token.tokens, t, ri);
         parts.push(renderParagraph(text, t));
@@ -1152,38 +1358,57 @@ export function markdownToWechatHTML(
     }
   }
 
+  // 陶笺：末块底部外边距归零，让纸面下沿留白恒等于包裹层 24px（与顶部对称）。
+  // 追加 margin-bottom 长声明放在简写之后覆盖底距；同时打在首个开标签（外层容器自带底距）
+  // 和最后一个开标签（末尾 li 等子块底距会穿过无 padding 的父容器折叠出去）
+  if (parts.length > 0 && t.name === "陶笺") {
+    const tagRe = /<(section|blockquote) style="([^"]*)"/g;
+    const ms = [...parts[parts.length - 1].matchAll(tagRe)];
+    const zeroAt = new Set<number>();
+    if (ms.length > 0) {
+      zeroAt.add(ms[0].index!);
+      zeroAt.add(ms[ms.length - 1].index!);
+    }
+    parts[parts.length - 1] = parts[parts.length - 1].replace(
+      tagRe,
+      (m0: string, tag: string, style: string, offset: number) =>
+        zeroAt.has(offset) ? `<${tag} style="${style}; margin-bottom: 0"` : m0
+    );
+  }
+
   let html = parts.join("");
 
   // 盘古之白
   html = addPanGu(html);
 
-  // 卡兹克专属：取消文章顶部间距，让首个块紧贴顶部
-  if (t.name === "卡兹克") {
-    html = html.replace(
-      /^<(section|blockquote) style="([^"]*)"/,
-      (_m, tag, style) => {
-        let s = style;
-        s = s.replace(/margin-top:\s*[^;"']*/, "margin-top: 0");
-        s = s.replace(/(margin:)\s*([^;"']*)/, (_mm: string, kw: string, val: string) => {
-          const arr = val.trim().split(/\s+/);
-          if (arr.length) arr[0] = "0";
-          return kw + " " + arr.join(" ");
-        });
-        return `<${tag} style="${s}"`;
-      }
-    );
-  }
+  // 取消文章顶部间距，让首个块紧贴顶部（全主题生效）
+  html = html.replace(
+    /^<(section|blockquote) style="([^"]*)"/,
+    (_m, tag, style) => {
+      let s = style;
+      s = s.replace(/margin-top:\s*[^;"']*/, "margin-top: 0");
+      s = s.replace(/(margin:)\s*([^;"']*)/, (_mm: string, kw: string, val: string) => {
+        const arr = val.trim().split(/\s+/);
+        if (arr.length) arr[0] = "0";
+        return kw + " " + arr.join(" ");
+      });
+      return `<${tag} style="${s}"`;
+    }
+  );
 
   // 外层包裹
   const isBauhaus = t.name === "包豪斯";
   const isClassical = t.name === "古典科技";
+  const isTao = t.name === "陶笺";
   if (isBauhaus) {
-    html = `<section style="background-color: ${t.background}; border: 2px solid #1A1A1A; border-top: 8px solid #0055A4; box-shadow: 8px 8px 0px #1A1A1A; padding: 0;"><section style="font-family: ${t.fontFamily}; font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; color: ${t.text};"><section style="padding: 1px ${sideMargin}px 0 ${sideMargin}px;">${html}</section></section></section>`;
+    html = `<section style="background-color: ${t.background}; border: 2px solid #1A1A1A; border-top: 8px solid #0055A4; box-shadow: 8px 8px 0px #1A1A1A; padding: 0;"><section style="font-family: ${t.fontFamily}; font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; color: ${t.text};"><section style="padding: 0 ${sideMargin}px 0 ${sideMargin}px;">${html}</section></section></section>`;
   } else if (isClassical) {
-    html = `<section style="background-color: ${t.background}; border: 1px solid #E0DCD1; padding: 0;"><section style="font-family: ${t.fontFamily}; font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; color: ${t.text};"><section style="padding: 1px ${sideMargin}px 0 ${sideMargin}px;">${html}</section></section></section>`;
+    html = `<section style="background-color: ${t.background}; border: 1px solid #E0DCD1; padding: 0;"><section style="font-family: ${t.fontFamily}; font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; color: ${t.text};"><section style="padding: 0 ${sideMargin}px 0 ${sideMargin}px;">${html}</section></section></section>`;
+  } else if (isTao) {
+    // 陶笺：纸面上下留白 24px，首行/末行不贴背景边缘（左右仍走 sideMargin）
+    html = `<section style="background-color: ${t.background}; padding: 0;"><section style="font-family: ${t.fontFamily}; font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; color: ${t.text};"><section style="padding: 24px ${sideMargin}px 24px;">${html}</section></section></section>`;
   } else {
-    const topPad = t.name === "卡兹克" ? 0 : 1;
-    html = `<section style="background-color: ${t.background}; padding: 0;"><section style="font-family: ${t.fontFamily}; font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; color: ${t.text};"><section style="padding: ${topPad}px ${sideMargin}px 0 ${sideMargin}px;">${html}</section></section></section>`;
+    html = `<section style="background-color: ${t.background}; padding: 0;"><section style="font-family: ${t.fontFamily}; font-size: ${t.baseFontSize}; line-height: ${t.lineHeight}; color: ${t.text};"><section style="padding: 0 ${sideMargin}px 0 ${sideMargin}px;">${html}</section></section></section>`;
   }
 
   return html;
@@ -1209,6 +1434,9 @@ function renderInlineToken(token: any, theme: ThemeConfig, resolveImage?: (src: 
   }
   if (token.type === "em") {
     return renderItalic(renderInlineTokens(token.tokens, theme, resolveImage));
+  }
+  if (token.type === "mark") {
+    return renderHighlight(renderInlineTokens(token.tokens, theme, resolveImage), theme);
   }
   if (token.type === "codespan") {
     return renderInlineCode(esc(token.text), theme);
