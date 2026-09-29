@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>书单卡片 · 五套公众号排版样式（微信兼容行内版）</title>
+<style>
+  * { box-sizing: border-box; }
+  body { background: #eceef1; margin: 0; padding: 40px 16px 64px; font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; }
+  h1.page-title { text-align: center; color: #1d1d1f; font-size: 22px; margin: 0 0 8px; font-weight: 600; }
+  p.page-sub { text-align: center; color: #86868b; font-size: 13px; margin: 0 0 8px; line-height: 1.7; }
+  p.page-tip { text-align: center; color: #b00020; font-size: 12px; margin: 0 0 40px; }
+  .phone { width: 375px; max-width: 100%; margin: 0 auto 48px; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+  .phone-label { padding: 14px 20px; font-size: 12px; color: #86868b; background: #fafafa; border-bottom: 1px solid #f0f0f0; letter-spacing: 2px; display: flex; justify-content: space-between; align-items: center; }
+  .phone-label .tag { color: #fff; background: #1d1d1f; border-radius: 999px; padding: 2px 10px; font-size: 11px; letter-spacing: 1px; }
+  .phone-screen { padding: 18px; min-height: 120px; }
+  .phone-screen section { margin: 0; }
+</style>
+</head>
+<body>
+  <h1 class="page-title">书单卡片 · 五套排版样式</h1>
+  <p class="page-sub">极简留白 · 古典水墨 · 圆润治愈 · Art Deco · 杂志大字号</p>
+  <p class="page-tip">全部为行内 style，可整段复制粘贴进公众号编辑器（微信会剥离 class，本页已规避）</p>
+
+  <!-- ==========================================
+       样式 1：极简留白风（现代文学 / 散文）
+       ========================================== -->
+  <div class="phone">
+    <div class="phone-label"><span>极简留白风</span><span class="tag">现代文学</span></div>
+    <div class="phone-screen">
+      <section style="margin: 0; padding: 26px; background-color: #ffffff; border: 1px solid #f0f0f0; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.03);">
+        <section style="font-size: 20px; font-weight: 700; color: #1f2937; letter-spacing: 0.5px; margin: 0 0 6px 0;">《黄金时代》</section>
+        <section style="font-size: 13px; color: #9ca3af; margin: 0 0 18px 0;">王小波 著</section>
+        <section style="background-color: #f9fafb; border-left: 4px solid #1f2937; padding: 14px 16px; font-size: 15px; line-height: 1.8; color: #374151; border-radius: 0 6px 6px 0;">那一天我二十一岁，在我一生的黄金时代。我有好多奢望。我想爱，想吃，还想在一瞬间变成天上半明半暗的云。</section>
+      </section>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       样式 2：古典水墨风（传统哲学 / 国学）
+       ========================================== -->
+  <div class="phone">
+    <div class="phone-label"><span>古典水墨风</span><span class="tag">国学哲思</span></div>
+    <div class="phone-screen">
+      <section style="position: relative; margin: 0; padding: 28px 24px; background-color: #f9f6f0; border: 1px solid #e2d5c3; border-radius: 4px; overflow: hidden; font-family: Georgia, 'Songti SC', 'STSong', 'SimSun', serif;">
+        <section style="position: absolute; top: -10px; right: 10px; font-size: 96px; color: #8b2626; opacity: 0.06; line-height: 1; font-family: Georgia, 'Songti SC', serif;">道</section>
+        <section style="position: relative; display: inline-block; border-bottom: 2px solid #8b2626; padding-bottom: 6px; margin-bottom: 10px;">
+          <section style="font-size: 20px; color: #333333; letter-spacing: 4px; font-weight: 600;">《道德经》</section>
+        </section>
+        <section style="position: relative; font-size: 13px; color: #8a7f72; margin: 0 0 14px 0;">老子 著</section>
+        <section style="position: relative; font-size: 15px; line-height: 2; color: #444444; text-align: justify; text-indent: 2em;">道可道，非常道；名可名，非常名。无名，天地之始；有名，万物之母。故常无欲，以观其妙；常有欲，以观其徼。</section>
+      </section>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       样式 3：圆润治愈风（网文 / 小说推荐）
+       ========================================== -->
+  <div class="phone">
+    <div class="phone-label"><span>圆润治愈风</span><span class="tag">玄幻修仙</span></div>
+    <div class="phone-screen">
+      <section style="margin: 0; padding: 22px; background-color: #fff7ed; border-radius: 24px;">
+        <section style="display: flex; align-items: center;">
+          <section style="width: 72px; height: 98px; flex-shrink: 0; border-radius: 10px; background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%); box-shadow: inset 0 0 8px rgba(154,52,18,0.08); display: flex; align-items: center; justify-content: center;">
+            <section style="font-size: 17px; color: #7c2d12; font-weight: 700; font-family: Georgia, 'Songti SC', serif; writing-mode: vertical-rl; letter-spacing: 6px;">仙逆</section>
+          </section>
+          <section style="flex: 1; padding-left: 16px; min-width: 0;">
+            <section style="font-size: 17px; font-weight: 700; color: #7c2d12; margin: 0 0 6px 0;">《仙逆》</section>
+            <section style="margin: 0 0 8px 0;">
+              <span style="display: inline-block; padding: 2px 9px; background-color: #ffedd5; color: #c2410c; font-size: 11px; border-radius: 999px; border: 1px solid #fed7aa;">玄幻修仙</span>
+            </section>
+            <section style="font-size: 14px; color: #9a3412; line-height: 1.7; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">顺为凡，逆则仙，只在心中一念间。修真之路步步危机，看平凡少年如何逆天改命，踏平这天地法则。</section>
+          </section>
+        </section>
+      </section>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       样式 4：Art Deco 复古艺术风（美学 / 漫画）
+       ========================================== -->
+  <div class="phone">
+    <div class="phone-label"><span>Art Deco 复古艺术风</span><span class="tag">漫画美学</span></div>
+    <div class="phone-screen">
+      <section style="margin: 0; padding: 7px; background-color: #1a1a1a;">
+        <section style="border: 2px solid #d4af37; padding: 22px 20px;">
+          <section style="border-bottom: 1px solid rgba(212,175,55,0.5); padding-bottom: 12px; margin-bottom: 14px;">
+            <section style="font-size: 13px; color: #a78b3f; letter-spacing: 4px; margin-bottom: 6px;">荒木飞吕彦 著</section>
+            <section style="font-size: 22px; color: #d4af37; letter-spacing: 6px; font-family: Georgia, 'Songti SC', serif; font-weight: 600;">《JOJO 的奇妙冒险》</section>
+          </section>
+          <section style="font-size: 14px; line-height: 1.85; color: #d1d5db;">硬朗的几何线条与古典美学的碰撞。如荒木飞吕彦笔下跨越时代的华丽与奇妙，每一帧都是可独立悬挂的画作，充满独特的结构美感。</section>
+        </section>
+      </section>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       样式 5：杂志大字号排版（深度长文 / 拆解）
+       ========================================== -->
+  <div class="phone">
+    <div class="phone-label"><span>杂志大字号排版</span><span class="tag">深度长文</span></div>
+    <div class="phone-screen">
+      <section style="position: relative; margin: 0; padding: 24px; background-color: #ffffff; border-top: 4px solid #111111; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+        <section style="position: absolute; top: 4px; right: 16px; font-size: 76px; font-weight: 900; color: #f1f1f4; line-height: 1; pointer-events: none;">05</section>
+        <section style="position: relative; font-size: 13px; color: #9ca3af; letter-spacing: 2px; margin-bottom: 6px;">庄周 著</section>
+        <section style="position: relative; font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 16px;">《庄子》</section>
+        <section style="position: relative; font-size: 14px; line-height: 1.95; color: #4b5563; text-align: justify;">
+          <span style="float: left; font-size: 44px; line-height: 0.9; color: #c4c4cc; font-family: Georgia, serif; margin: 4px 8px 0 0;">"</span>北冥有鱼，其名为鲲。鲲之大，不知其几千里也；化而为鸟，其名为鹏。逍遥游的境界，在于内心的绝对自由与无拘。
+        </section>
+      </section>
+    </div>
+  </div>
+
+</body>
+</html>

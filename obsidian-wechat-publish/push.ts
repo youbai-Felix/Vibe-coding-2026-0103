@@ -7,6 +7,12 @@ export interface PushParams {
 }
 
 export async function pushToDraft(params: PushParams): Promise<{ success: boolean; message: string }> {
+  if (!params.apiUrl || !params.apiUrl.trim()) {
+    return {
+      success: false,
+      message: "尚未配置 API 地址：请先在同步弹窗中填写你自部署的推送服务地址（部署方法见 README）。",
+    };
+  }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);
 
