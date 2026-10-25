@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>合妖录 · 妖果合成</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;900&family=Cormorant+Garamond:wght@700&display=swap" rel="stylesheet">
+<script src="./matter.min.js"></script>
+<style>
+:root{
+  --bg0:#070c09;--bg1:#0d1611;--felt:#12211a;
+  --paper:#f1e8d0;--cinnabar:#c8402f;--gold:#d9a441;--goldHi:#f4d489;--dim:#93a89a;
+  --f-disp:"ZCOOL XiaoWei","STKaiti","Kaiti SC","KaiTi",serif;
+  --f-body:"Noto Serif SC","Songti SC","STSong",serif;
+  --f-num:"Cormorant Garamond","Georgia","Songti SC",serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:var(--f-body);color:var(--paper);overflow:hidden;user-select:none;
+  background:radial-gradient(120% 90% at 50% 20%,#1a2f24 0%,var(--felt) 45%,var(--bg1) 80%,var(--bg0) 100%)}
+#grain{position:fixed;inset:0;pointer-events:none;z-index:50;opacity:.06;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+#app{height:100%;display:flex;flex-direction:column;align-items:center}
+
+#hud{width:100%;max-width:520px;display:flex;align-items:center;gap:10px;padding:8px 12px}
+#hud .logo{font-family:var(--f-disp);font-size:20px;letter-spacing:4px;color:var(--gold)}
+#hud .spacer{flex:1}
+.scorebox{text-align:center;line-height:1.05}
+.scorebox .lbl{font-size:10px;letter-spacing:3px;color:var(--dim)}
+.scorebox .val{font-family:var(--f-num);font-size:22px;font-weight:700;color:var(--goldHi)}
+#nextBox{display:flex;align-items:center;gap:6px}
+#nextBox .lbl{font-size:10px;letter-spacing:2px;color:var(--dim);writing-mode:vertical-lr}
+#nextGlyph{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--f-disp);font-size:20px;border:1px solid var(--gold);color:var(--paper);background:rgba(0,0,0,.25)}
+.hbtn{background:none;border:1px solid rgba(217,164,65,.3);color:var(--dim);border-radius:5px;padding:4px 9px;font-size:12px;letter-spacing:2px;cursor:pointer}
+.hbtn:hover{color:var(--gold);border-color:var(--gold)}
+
+#wrap{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;width:100%}
+#cv{max-height:100%;max-width:100%;border-radius:12px;touch-action:none;cursor:crosshair;
+  box-shadow:0 18px 50px rgba(0,0,0,.6)}
+#chain{width:100%;max-width:520px;display:flex;justify-content:center;gap:7px;padding:8px 10px 12px;flex-wrap:wrap}
+.ch{width:34px;text-align:center}
+.ch .c{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;
+  font-family:var(--f-disp);font-size:14px;border:1.5px dashed rgba(147,168,154,.3);color:rgba(147,168,154,.35);background:transparent;transition:all .3s}
+.ch.on .c{border-style:solid;color:#14201a;font-size:15px}
+.ch .n{font-size:9px;color:var(--dim);margin-top:2px;letter-spacing:1px}
+.ch.big .c{animation:chPulse 1.2s ease infinite}
+@keyframes chPulse{50%{box-shadow:0 0 12px rgba(244,212,137,.5)}}
+
+.ov{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  background:rgba(4,8,6,.82);backdrop-filter:blur(4px)}
+.ov.on{display:flex;animation:ovIn .3s}
+@keyframes ovIn{from{opacity:0}to{opacity:1}}
+.ovbox{max-width:440px;width:88vw;padding:30px 30px 26px;border-radius:14px;text-align:center;
+  background:linear-gradient(170deg,#141c16,#0b110d);border:1px solid rgba(217,164,65,.35);
+  box-shadow:0 30px 80px rgba(0,0,0,.7);animation:rise .45s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+.ovbox h1{font-family:var(--f-disp);font-size:44px;letter-spacing:10px;color:var(--paper);margin:4px 0 2px}
+.ovbox h2{font-family:var(--f-disp);font-size:26px;letter-spacing:8px;color:var(--gold)}
+.ovbox .sub{color:var(--dim);font-size:13px;letter-spacing:4px;margin-bottom:18px}
+.ovbox .story{font-size:13.5px;line-height:2;color:var(--dim);margin-bottom:20px;text-align:left}
+.ovbox .story b{color:var(--goldHi)}
+.btn{display:inline-block;font-size:16px;letter-spacing:4px;padding:10px 26px;border-radius:6px;cursor:pointer;
+  border:1px solid rgba(217,164,65,.35);background:linear-gradient(180deg,#31241a,#221810);color:var(--paper);
+  transition:transform .12s,filter .12s}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.15)}
+.btn.primary{background:linear-gradient(180deg,#e8654f,var(--cinnabar) 45%,#8f2619);border-color:rgba(244,212,137,.55);color:#fff7e8}
+#stats{margin:8px auto 18px;font-size:14px;line-height:2.1;color:var(--dim)}
+#stats b{color:var(--goldHi);font-family:var(--f-num);font-size:17px;margin-left:6px}
+.copyok{color:#7fbf8e!important}
+#toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:80;padding:8px 20px;border-radius:7px;
+  background:rgba(12,18,13,.95);border:1px solid rgba(217,164,65,.35);font-size:13.5px;letter-spacing:2px;
+  opacity:0;transition:opacity .25s;pointer-events:none}
+#toast.on{opacity:1}
+@media (max-width:520px){#hud{max-width:100%} .scorebox .val{font-size:18px}}
+</style>
+</head>
+<body>
+<div id="grain"></div>
+<div id="app">
+  <div id="hud">
+    <span class="logo">合妖录</span>
+    <div class="scorebox"><div class="lbl">分数</div><div class="val" id="scoreN">0</div></div>
+    <div class="scorebox"><div class="lbl">最佳</div><div class="val" id="bestN">0</div></div>
+    <div class="spacer"></div>
+    <div id="nextBox"><span class="lbl">下一个</span><div id="nextGlyph">魂</div></div>
+    <button class="hbtn" id="btnMute">音效 开</button>
+    <button class="hbtn" id="btnRestart">重开</button>
+  </div>
+  <div id="wrap"><canvas id="cv"></canvas></div>
+  <div id="chain"></div>
+</div>
+<div id="toast"></div>
+
+<div class="ov on" id="ovStart"><div class="ovbox">
+  <div class="sub">妖 果 造 化 · 一 碰 即 合</div>
+  <h1>合妖录</h1>
+  <div class="story">
+    山中妖气凝结成<b>魂火</b>，二魂相遇化<b>纸人</b>，层层造化，直至<b>神</b>。<br><br>
+    · 移动指针瞄准，松手放下妖果<br>
+    · 两个<b>同级妖怪</b>相碰即合体升一级，连锁合成加分<br>
+    · 妖堆<b>压过朱砂线</b>太久，妖气反噬，局终<br>
+    · 两条<b>神</b>相合，超脱三界，+1000 分
+  </div>
+  <button class="btn primary" id="btnStart">开 合</button>
+</div></div>
+
+<div class="ov" id="ovOver"><div class="ovbox">
+  <h2>妖 气 反 噬</h2>
+  <div class="sub" id="overSub"></div>
+  <div id="stats"></div>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <button class="btn" id="btnCopy">复制战绩</button>
+    <button class="btn primary" id="btnAgain">再 开 一 局</button>
+  </div>
+</div></div>
+
+<script>
+/*__ENGINE_START__*/
+(function(){
+'use strict';
+const TIERS=[
+  {name:'魂火',glyph:'魂',r:12,color:'#9db3a4',ink:'#14201a'},
+  {name:'纸人',glyph:'纸',r:17,color:'#d9a441',ink:'#14201a'},
+  {name:'菇妖',glyph:'菇',r:23,color:'#c07a3e',ink:'#14201a'},
+  {name:'蛇灵',glyph:'蛇',r:30,color:'#57937d',ink:'#f5e9d0'},
+  {name:'狐仙',glyph:'狐',r:38,color:'#e8654f',ink:'#14201a'},
+  {name:'尸傀',glyph:'尸',r:47,color:'#8f2619',ink:'#f5e9d0'},
+  {name:'罗刹',glyph:'罗',r:57,color:'#3f5e8c',ink:'#f5e9d0'},
+  {name:'山魈',glyph:'魈',r:68,color:'#2e6e5e',ink:'#f5e9d0'},
+  {name:'蛟',glyph:'蛟',r:80,color:'#4a97b8',ink:'#14201a'},
+  {name:'龙',glyph:'龙',r:93,color:'#e0b13e',ink:'#14201a'},
+  {name:'神',glyph:'神',r:106,color:'#f4d489',ink:'#8f2619'},
+];
+const SCORE=[1,3,6,10,15,21,28,36,45,55,66];
+const SPAWN_W=[24,24,23,15,14];
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function pickSpawn(rng){
+  const tot=SPAWN_W.reduce((a,b)=>a+b,0);
+  let x=rng()*tot;
+  for(let i=0;i<SPAWN_W.length;i++){x-=SPAWN_W[i];if(x<=0)return i+1}
+  return 1;
+}
+// 合并队列去重：输入 [ [idA,idB], ... ]，同 id 只参与一次
+function dedupePairs(pairs){
+  const used=new Set(),out=[];
+  for(const [a,b] of pairs){
+    if(used.has(a)||used.has(b))continue;
+    used.add(a);used.add(b);out.push([a,b]);
+  }
+  return out;
+}
+// 危险判定：返回本帧是否处于危险（有落定妖压线）
+function dangerFrame(bodies,lineY,minAge){
+  return bodies.some(b=>b.plugin&&b.plugin.tier&&b.plugin.age>minAge&&(b.position.y-b.circleRadius)<lineY);
+}
+const E={TIERS,SCORE,SPAWN_W,pickSpawn,dedupePairs,dangerFrame,mulberry32};
+if(typeof module!=='undefined'&&module.exports)module.exports=E;
+if(typeof globalThis!=='undefined')globalThis.HeyaoluEngine=E;
+})();
+/*__ENGINE_END__*/
+</script>
+
+<script>
+(function(){
+'use strict';
+const E=globalThis.HeyaoluEngine;
+const M=Matter;
+const {Engine,World,Bodies,Body,Events,Composite}=M;
+const $=s=>document.querySelector(s);
+const W=440,H=620,LINE_Y=112,DROP_Y=58;
+const cv=$('#cv');cv.width=W;cv.height=H;
+const ctx=cv.getContext('2d');
+
+let engine,world,bodiesList=[],particles=[],floats=[];
+let score=0,best=+(localStorage.getItem('heyaolu_best')||0);
+let discovered=new Array(11).fill(false);
+let aimX=W/2,currentTier=1,nextTier=2,cooldown=0,over=false,started=false;
+let dangerTicks=0,chain=0,chainTimer=0,lastMergeAt=0;
+let rng=Math.random;
+
+/* ---------- 音效 ---------- */
+let actx=null,muted=localStorage.getItem('heyaolu_mute')==='1';
+function ac(){if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();return actx}
+function tone(f,dur,type='sine',vol=.12,slide=0){
+  if(muted)return;
+  try{
+    const a=ac(),o=a.createOscillator(),g=a.createGain();
+    o.type=type;o.frequency.setValueAtTime(f,a.currentTime);
+    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),a.currentTime+dur);
+    g.gain.setValueAtTime(vol,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+dur);
+    o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+dur);
+  }catch(e){}
+}
+const snd={
+  drop:()=>tone(180,.1,'sine',.08,-60),
+  merge:t=>{tone(200+t*52,.14,'sine',.13,80);setTimeout(()=>tone(300+t*52,.12,'triangle',.09,60),40)},
+  chain:n=>{tone(500+n*90,.16,'triangle',.12,120)},
+  vanish:()=>{[440,554,659,880].forEach((f,i)=>setTimeout(()=>tone(f,.25,'triangle',.12),i*90))},
+  discover:()=>{tone(660,.3,'sine',.1,220);setTimeout(()=>tone(990,.35,'sine',.09,220),150)},
+  over:()=>{tone(160,.7,'sawtooth',.14,-90);setTimeout(()=>tone(110,.9,'sine',.12,-50),200)},
+};
+
+/* ---------- 物理 ---------- */
+function setupWorld(){
+  engine=Engine.create();
+  world=engine.world;
+  engine.gravity.y=1.35;
+  const opt={isStatic:true,friction:.4,restitution:.05};
+  Composite.add(world,[
+    Bodies.rectangle(-30,H/2,60,H*3,opt),
+    Bodies.rectangle(W+30,H/2,60,H*3,opt),
+    Bodies.rectangle(W/2,H+30,W+300,60,opt),
+  ]);
+  Events.on(engine,'collisionStart',collectPairs);
+  Events.on(engine,'collisionActive',collectPairs);
+}
+let mergeQueue=[];
+function collectPairs(ev){
+  if(over)return;
+  for(const p of ev.pairs){
+    const a=p.bodyA,b=p.bodyB;
+    if(a.plugin&&b.plugin&&a.plugin.tier&&b.plugin.tier&&!a.plugin.dead&&!b.plugin.dead&&a.plugin.tier===b.plugin.tier){
+      a.plugin.dead=b.plugin.dead=true;
+      mergeQueue.push([a.id,b.id]);
+    }
+  }
+}
+function makeCircle(tier,x,y,age){
+  const t=E.TIERS[tier-1];
+  const b=Bodies.circle(x,y,t.r,{restitution:.12,friction:.35,frictionStatic:.6,density:.0012});
+  b.plugin={tier,age:age||0,dead:false};
+  Composite.add(world,b);
+  return b;
+}
+function processMerges(){
+  const byId=new Map();
+  for(const b of Composite.allBodies(world))if(b.plugin&&b.plugin.tier)byId.set(b.id,b);
+  for(const [idA,idB] of E.dedupePairs(mergeQueue)){
+    const a=byId.get(idA),b=byId.get(idB);
+    if(!a||!b)continue;
+    const tier=a.plugin.tier;
+    const mx=(a.position.x+b.position.x)/2,my=(a.position.y+b.position.y)/2;
+    const col=E.TIERS[tier-1].color;
+    burst(mx,my,col,10);
+    Composite.remove(world,a);Composite.remove(world,b);
+    if(tier>=11){
+      score+=1000;addFloat(mx,my,'超脱 +1000','#f4d489',26);
+      snd.vanish();
+    }else{
+      const nb=makeCircle(tier+1,mx,Math.min(my,H-E.TIERS[tier].r-4),20);
+      Body.setVelocity(nb,{x:(a.velocity.x+b.velocity.x)*.2,y:-2});
+      const now=performance.now();
+      chain=(now-lastMergeAt<900)?chain+1:1;lastMergeAt=now;
+      const gain=E.SCORE[tier]+ (chain>1?(chain-1)*2:0);
+      score+=gain;
+      addFloat(mx,my,'+'+gain+(chain>1?' ×'+chain:''),'#f4d489',20);
+      if(!discovered[tier]){discovered[tier]=true;snd.discover();renderChain();addFloat(mx,my-30,'首次合成 '+E.TIERS[tier].name+'!','#e8654f',16)}
+      snd.merge(tier);if(chain>1)snd.chain(chain);
+      if(tier+1>=11&&!discovered[10]){/* 神留给创造时 */}
+    }
+    updateScore();
+  }
+  mergeQueue.length=0;
+}
+function burst(x,y,color,n){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2,v=1+Math.random()*3.2;
+    particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1,life:1,color,r:2+Math.random()*3});
+  }
+}
+function addFloat(x,y,text,color,size){floats.push({x,y,text,color,size,life:1})}
+
+/* ---------- 主循环 ---------- */
+let last=performance.now(),acc=0;
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt=Math.min(50,now-last);last=now;
+  if(!started||over){draw();return}
+  acc+=dt;
+  while(acc>=1000/60){
+    acc-=1000/60;
+    Engine.update(engine,1000/60);
+    cooldown=Math.max(0,cooldown-1000/60);
+    if(chainTimer>0)chainTimer-=1000/60;
+    for(const b of Composite.allBodies(world)){
+      if(!b.plugin||!b.plugin.tier)continue;
+      b.plugin.age+=16.7;
+      if(Math.abs(b.velocity.x)>19)Body.setVelocity(b,{x:Math.sign(b.velocity.x)*19,y:b.velocity.y});
+      if(Math.abs(b.velocity.y)>22)Body.setVelocity(b,{x:b.velocity.x,y:Math.sign(b.velocity.y)*22});
+    }
+    processMerges();
+    const danger=E.dangerFrame(Composite.allBodies(world).filter(b=>b.plugin&&b.plugin.tier),LINE_Y,50);
+    dangerTicks=danger?dangerTicks+1:Math.max(0,dangerTicks-2);
+    if(dangerTicks>95){gameOver();return}
+  }
+  stepParticles();
+  draw();
+}
+function stepParticles(){
+  for(const p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.life-=.025}
+  particles=particles.filter(p=>p.life>0);
+  for(const f of floats){f.y-=.8;f.life-=.014}
+  floats=floats.filter(f=>f.life>0);
+}
+
+/* ---------- 绘制 ---------- */
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // 毡底
+  const g=ctx.createRadialGradient(W/2,H*.28,60,W/2,H*.5,H*.85);
+  g.addColorStop(0,'#1a2f24');g.addColorStop(1,'#0c1510');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  // 朱砂线
+  const warn=dangerTicks>18;
+  ctx.save();
+  ctx.strokeStyle=warn?(dangerTicks%20<10?'rgba(232,101,79,.95)':'rgba(232,101,79,.4)'):'rgba(200,64,47,.55)';
+  ctx.lineWidth=warn?3:2;ctx.setLineDash([12,9]);
+  ctx.beginPath();ctx.moveTo(0,LINE_Y);ctx.lineTo(W,LINE_Y);ctx.stroke();
+  ctx.restore();
+  if(warn){
+    ctx.fillStyle='rgba(232,101,79,.9)';ctx.font='13px "Noto Serif SC",serif';ctx.textAlign='center';
+    ctx.fillText('⚠ 妖气将噬 · 快合成腾出空间',W/2,LINE_Y-10);
+  }
+  // 幽灵预览
+  if(started&&!over&&cooldown<=0){
+    const t=E.TIERS[currentTier-1];
+    ctx.save();ctx.globalAlpha=.4;
+    drawCircle(ctx,aimX,DROP_Y,currentTier);
+    ctx.globalAlpha=.22;
+    ctx.strokeStyle='#f4d489';ctx.setLineDash([4,6]);
+    ctx.beginPath();ctx.moveTo(aimX,DROP_Y+t.r);ctx.lineTo(aimX,LINE_Y);ctx.stroke();
+    ctx.restore();
+  }
+  // 妖体
+  for(const b of Composite.allBodies(world)){
+    if(!b.plugin||!b.plugin.tier)continue;
+    drawCircle(ctx,b.position.x,b.position.y,b.plugin.tier,b.angle);
+  }
+  // 粒子
+  for(const p of particles){
+    ctx.save();ctx.globalAlpha=Math.max(0,p.life);
+    ctx.fillStyle=p.color;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r*p.life,0,7);ctx.fill();
+    ctx.restore();
+  }
+  // 浮字
+  for(const f of floats){
+    ctx.save();ctx.globalAlpha=Math.max(0,f.life);
+    ctx.fillStyle=f.color;ctx.font='700 '+f.size+'px "Cormorant Garamond","Noto Serif SC",serif';
+    ctx.textAlign='center';ctx.fillText(f.text,f.x,f.y);
+    ctx.restore();
+  }
+}
+function drawCircle(c,x,y,tier,angle){
+  const t=E.TIERS[tier-1];
+  c.save();c.translate(x,y);
+  const rg=c.createRadialGradient(-t.r*.35,-t.r*.4,t.r*.15,0,0,t.r);
+  rg.addColorStop(0,t.color);rg.addColorStop(1,shade(t.color,-38));
+  c.fillStyle=rg;
+  c.beginPath();c.arc(0,0,t.r,0,7);c.fill();
+  c.lineWidth=2;c.strokeStyle='rgba(20,32,26,.55)';c.stroke();
+  c.rotate(angle||0);
+  c.fillStyle=t.ink;
+  c.font=(t.r*0.95)+'px "ZCOOL XiaoWei","STKaiti","Kaiti SC",serif';
+  c.textAlign='center';c.textBaseline='middle';
+  c.fillText(t.glyph,0,2);
+  c.restore();
+}
+function shade(hex,amt){
+  const n=parseInt(hex.slice(1),16);
+  const r=Math.max(0,Math.min(255,(n>>16)+amt)),g=Math.max(0,Math.min(255,((n>>8)&255)+amt)),b=Math.max(0,Math.min(255,(n&255)+amt));
+  return 'rgb('+r+','+g+','+b+')';
+}
+
+/* ---------- 输入 ---------- */
+function ptr(e){
+  const r=cv.getBoundingClientRect();
+  const cx=(e.touches?e.touches[0].clientX:e.clientX);
+  return (cx-r.left)/r.width*W;
+}
+cv.addEventListener('pointermove',e=>{aimX=Math.max(E.TIERS[currentTier-1].r,Math.min(W-E.TIERS[currentTier-1].r,ptr(e)))});
+cv.addEventListener('pointerdown',e=>{aimX=Math.max(E.TIERS[currentTier-1].r,Math.min(W-E.TIERS[currentTier-1].r,ptr(e)))});
+cv.addEventListener('pointerup',e=>{
+  if(!started||over||cooldown>0)return;
+  const t=E.TIERS[currentTier-1];
+  const b=makeCircle(currentTier,Math.max(t.r,Math.min(W-t.r,ptr(e))),DROP_Y,0);
+  Body.setVelocity(b,{x:0,y:2});
+  discovered[currentTier-1]=true;renderChain();
+  currentTier=nextTier;nextTier=E.pickSpawn(rng);
+  $('#nextGlyph').textContent=E.TIERS[nextTier-1].glyph;
+  $('#nextGlyph').style.background=E.TIERS[nextTier-1].color;
+  $('#nextGlyph').style.color=E.TIERS[nextTier-1].ink;
+  cooldown=500;
+  snd.drop();
+});
+
+/* ---------- UI ---------- */
+function updateScore(){
+  $('#scoreN').textContent=score;
+  if(score>best){best=score;localStorage.setItem('heyaolu_best',best);$('#bestN').textContent=best}
+}
+function renderChain(){
+  let h='';
+  for(let i=0;i<11;i++){
+    const t=E.TIERS[i];
+    const on=discovered[i];
+    h+='<div class="ch'+(on?' on':'')+(on&&i===10?' big':'')+'"><div class="c" style="'+(on?('background:'+t.color+';color:'+t.ink+';border-color:'+t.color):'')+'">'+(on?t.glyph:'?')+'</div><div class="n">'+t.name+'</div></div>';
+  }
+  $('#chain').innerHTML=h;
+}
+let toastT=null;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2000)}
+
+function reset(){
+  setupWorld();mergeQueue.length=0;
+  score=0;discovered=new Array(11).fill(false);
+  particles=[];floats=[];dangerTicks=0;chain=0;cooldown=0;over=false;
+  currentTier=E.pickSpawn(rng);nextTier=E.pickSpawn(rng);
+  $('#nextGlyph').textContent=E.TIERS[nextTier-1].glyph;
+  $('#nextGlyph').style.background=E.TIERS[nextTier-1].color;
+  $('#nextGlyph').style.color=E.TIERS[nextTier-1].ink;
+  updateScore();renderChain();
+}
+function gameOver(){
+  over=true;snd.over();
+  let maxT=0;for(const b of Composite.allBodies(world))if(b.plugin&&b.plugin.tier)maxT=Math.max(maxT,b.plugin.tier);
+  const stats=$('#stats');
+  stats.innerHTML='本局分数<b>'+score+'</b><br>最佳战绩<b>'+best+'</b><br>最高造化<b>'+E.TIERS[maxT-1].name+'</b>';
+  $('#overSub').textContent='止步于「'+E.TIERS[maxT-1].name+'」';
+  $('#ovOver').classList.add('on');
+}
+
+$('#btnStart').addEventListener('click',()=>{$('#ovStart').classList.remove('on');ac();started=true});
+$('#btnAgain').addEventListener('click',()=>{$('#ovOver').classList.remove('on');reset()});
+$('#btnRestart').addEventListener('click',()=>{if(!started)return;$('#ovOver').classList.remove('on');reset()});
+$('#btnMute').addEventListener('click',()=>{muted=!muted;localStorage.setItem('heyaolu_mute',muted?'1':'0');$('#btnMute').textContent=muted?'音效 关':'音效 开'});
+$('#btnMute').textContent=muted?'音效 关':'音效 开';
+$('#btnCopy').addEventListener('click',()=>{
+  let maxT=0;for(const b of Composite.allBodies(world))if(b.plugin&&b.plugin.tier)maxT=Math.max(maxT,b.plugin.tier);
+  const txt='【合妖录】我合出 '+score+' 分，最高造化「'+E.TIERS[maxT-1].name+'」。你能合出神吗？';
+  navigator.clipboard&&navigator.clipboard.writeText(txt).then(()=>{
+    const b=$('#btnCopy');b.textContent='已复制 ✓';b.classList.add('copyok');
+    setTimeout(()=>{b.textContent='复制战绩';b.classList.remove('copyok')},1500);
+  });
+});
+$('#bestN').textContent=best;
+renderChain();
+setupWorld();
+requestAnimationFrame(loop);
+// 看门狗：rAF 被挂起（后台 webview）时用定时器续帧
+setInterval(()=>{if(performance.now()-last>250)loop(performance.now())},120);
+})();
+</script>
+</body>
+</html>

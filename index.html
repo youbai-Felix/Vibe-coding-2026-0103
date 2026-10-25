@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>妖坊游戏铺 · 四个小游戏，点开即玩</title>
+<meta name="description" content="暗牌·千术斩妖 / 合妖录·妖果合成 / 一箭封喉·风中射帖 / 捏捏泡泡。四个免费网页小游戏，手机电脑点开即玩，无需下载。">
+<style>
+  :root{
+    --ink:#17130e;
+    --ink2:#221c14;
+    --paper:#e8ddc8;
+    --paper-dim:#a89a7e;
+    --cinnabar:#c8452c;
+    --cinnabar-bright:#e05a3a;
+    --gold:#c9a25a;
+    --bamboo:#7d9b76;
+    --pink:#d98a9c;
+    --serif:"Songti SC","STSong","Noto Serif SC","Source Han Serif SC","SimSun",serif;
+    --kai:"Kaiti SC","STKaiti","KaiTi",var(--serif);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--serif);
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+  /* 纸纹噪点 */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* 一点冷光氛围 */
+  body::after{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(201,162,90,.10), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 85% 110%, rgba(200,69,44,.07), transparent 60%);
+  }
+  .page{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:0 24px}
+
+  /* ===== 头部 ===== */
+  header{padding:72px 0 40px;position:relative}
+  .lantern{
+    position:absolute;top:40px;right:0;width:54px;height:78px;
+    font-family:var(--kai);font-size:15px;line-height:1.35;color:var(--cinnabar-bright);
+    writing-mode:vertical-rl;letter-spacing:.35em;
+    border:1px solid rgba(200,69,44,.45);border-radius:27px;
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(180deg, rgba(200,69,44,.14), rgba(200,69,44,.03));
+    box-shadow:0 0 24px rgba(200,69,44,.15), inset 0 0 12px rgba(200,69,44,.12);
+    animation:sway 5s ease-in-out infinite;transform-origin:top center;
+  }
+  @keyframes sway{0%,100%{transform:rotate(2.2deg)}50%{transform:rotate(-2.2deg)}}
+  .kicker{
+    font-family:var(--kai);color:var(--paper-dim);font-size:14px;letter-spacing:.5em;
+    margin-bottom:18px;
+  }
+  h1{
+    font-size:clamp(44px,9vw,84px);font-weight:900;letter-spacing:.06em;line-height:1.1;
+  }
+  h1 .accent{color:var(--cinnabar-bright)}
+  .seal{
+    display:inline-block;vertical-align:top;margin-left:14px;
+    width:44px;height:44px;background:var(--cinnabar);color:#f4e6d8;
+    font-family:var(--kai);font-size:15px;line-height:1.15;font-weight:700;
+    display:inline-flex;align-items:center;justify-content:center;text-align:center;
+    border-radius:4px;transform:rotate(4deg);
+    box-shadow:0 2px 10px rgba(200,69,44,.4);
+    writing-mode:vertical-rl;letter-spacing:.1em;
+  }
+  .lede{
+    margin-top:22px;font-size:16px;color:var(--paper-dim);letter-spacing:.12em;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  }
+  .lede .dot{width:5px;height:5px;background:var(--cinnabar);border-radius:50%;flex:none}
+
+  /* ===== 游戏签 ===== */
+  .games{padding:24px 0 30px;display:flex;flex-direction:column;gap:26px}
+  .game{
+    position:relative;display:block;text-decoration:none;color:inherit;
+    background:linear-gradient(160deg, var(--ink2) 0%, #1b1610 100%);
+    border:1px solid rgba(232,221,200,.13);border-radius:6px;
+    padding:30px 30px 30px 34px;
+    transition:transform .35s cubic-bezier(.2,.9,.3,1.2), border-color .35s, box-shadow .35s;
+    overflow:hidden;
+    opacity:0;transform:translateY(26px);
+    animation:rise .8s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  .game:nth-child(1){animation-delay:.10s}
+  .game:nth-child(2){animation-delay:.22s}
+  .game:nth-child(3){animation-delay:.34s}
+  .game:nth-child(4){animation-delay:.46s}
+  @keyframes rise{to{opacity:1;transform:translateY(0)}}
+  .game::before{ /* 左侧朱砂线 */
+    content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+    background:linear-gradient(180deg,var(--tone,var(--cinnabar)),transparent 92%);
+    opacity:.75;transition:opacity .35s;
+  }
+  .game::after{ /* 底纹大字 */
+    content:attr(data-num);
+    position:absolute;right:-8px;bottom:-46px;
+    font-size:180px;font-weight:900;color:rgba(232,221,200,.045);
+    font-family:var(--kai);pointer-events:none;line-height:1;
+    transition:color .4s;
+  }
+  .game:hover{
+    transform:translateY(-5px);
+    border-color:color-mix(in srgb, var(--tone,var(--cinnabar)) 55%, transparent);
+    box-shadow:0 18px 44px -18px rgba(0,0,0,.75), 0 0 0 1px rgba(232,221,200,.04);
+  }
+  .game:hover::before{opacity:1}
+  .game:hover::after{color:rgba(232,221,200,.08)}
+  .g-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .g-tag{
+    font-family:var(--kai);font-size:13px;color:var(--tone,var(--cinnabar-bright));
+    border:1px solid color-mix(in srgb, var(--tone,var(--cinnabar-bright)) 55%, transparent);
+    padding:3px 10px;border-radius:3px;letter-spacing:.25em;white-space:nowrap;
+  }
+  .g-title{
+    font-size:clamp(26px,5vw,38px);font-weight:900;letter-spacing:.08em;
+  }
+  .g-sub{font-size:15px;color:var(--paper-dim);letter-spacing:.2em;margin-top:10px}
+  .g-desc{
+    margin-top:14px;font-size:15.5px;line-height:1.9;color:#cfc3ab;letter-spacing:.04em;
+    max-width:34em;
+  }
+  .g-desc .hl{color:var(--tone,var(--cinnabar-bright))}
+  .g-go{
+    margin-top:20px;display:inline-flex;align-items:center;gap:10px;
+    font-family:var(--kai);font-size:14.5px;letter-spacing:.35em;color:var(--paper);
+  }
+  .g-go .arr{
+    display:inline-block;transition:transform .35s;
+    color:var(--tone,var(--cinnabar-bright));font-size:16px;
+  }
+  .game:hover .g-go .arr{transform:translateX(8px)}
+
+  /* 各游戏主题色 */
+  .game[data-tone="#c9a25a"]{--tone:#c9a25a}
+  .game[data-tone="#c8452c"]{--tone:#c8452c}
+  .game[data-tone="#7d9b76"]{--tone:#7d9b76}
+  .game[data-tone="#d98a9c"]{--tone:#d98a9c}
+
+  footer{
+    padding:44px 0 60px;text-align:center;
+    font-family:var(--kai);color:var(--paper-dim);font-size:13px;letter-spacing:.3em;
+  }
+  footer .rule{width:36px;height:1px;background:rgba(232,221,200,.25);margin:0 auto 18px}
+
+  @media (max-width:560px){
+    header{padding-top:56px}
+    .lantern{width:44px;height:62px;font-size:13px;top:30px}
+    .game{padding:24px 20px 24px 26px}
+    .game::after{font-size:120px;bottom:-30px}
+    .g-desc{font-size:14.5px}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="lantern">亥时开张</div>
+    <p class="kicker">午夜妖市 · 东街第三摊</p>
+    <h1>妖坊<span class="accent">游戏</span>铺<span class="seal">妖坊</span></h1>
+    <p class="lede">
+      <span>四个小游戏</span><span class="dot"></span>
+      <span>手机电脑点开即玩</span><span class="dot"></span>
+      <span>免费 · 无需下载 · 离线可玩</span>
+    </p>
+  </header>
+
+  <nav class="games">
+    <a class="game" data-tone="#c9a25a" data-num="牌" href="./anpai/">
+      <div class="g-head">
+        <span class="g-tag">扑克 Roguelike</span>
+        <span class="g-title">暗牌 · 千术斩妖</span>
+      </div>
+      <p class="g-sub">民国妖异赌坊 · 三盏命灯闯十五层妖局</p>
+      <p class="g-desc">
+        出牌型斩妖：<span class="hl">筹码 × 倍率 = 伤害</span>。对子、顺子、同花……
+        每斩一妖三选一强化，法器秘籍滚雪球。头目层石皮、龙鳞、吞手牌，通关后还有无尽轮回。
+        末了复制战绩，发群里挑衅朋友。
+      </p>
+      <span class="g-go"><span class="arr">➤</span>入局摸牌</span>
+    </a>
+
+    <a class="game" data-tone="#c8452c" data-num="妖" href="./heyaolu/">
+      <div class="g-head">
+        <span class="g-tag">物理合成</span>
+        <span class="g-title">合妖录 · 妖果合成</span>
+      </div>
+      <p class="g-sub">大西瓜式 · 从魂火一路合到神</p>
+      <p class="g-desc">
+        掉妖果、<span class="hl">同级相碰合体升链</span>：魂火→纸人→狐仙→蛟→龙→神，十一级妖链。
+        连锁合成有连击加分，两条「神」相合超脱飞升。妖堆压过朱砂线，妖气反噬局终。
+      </p>
+      <span class="g-go"><span class="arr">➤</span>开坛合妖</span>
+    </a>
+
+    <a class="game" data-tone="#7d9b76" data-num="箭" href="./yijian/">
+      <div class="g-head">
+        <span class="g-tag">精准时机街机</span>
+        <span class="g-title">一箭封喉 · 风中射帖</span>
+      </div>
+      <p class="g-sub">拉弓 · 蓄力 · 看风</p>
+      <p class="g-desc">
+        按住拉弓蓄力、松手放箭，弹道吃<span class="hl">重力又吃风</span>。
+        穿越靶面瞬间的垂直偏差定环数，八环以上连击加分。中靶回箭、脱靶折箭，箭尽局终——
+        第八帖起靶子还会动。
+      </p>
+      <span class="g-go"><span class="arr">➤</span>张弓搭箭</span>
+    </a>
+
+    <a class="game" data-tone="#d98a9c" data-num="泡" href="./nieniu/">
+      <div class="g-head">
+        <span class="g-tag">解压 ASMR</span>
+        <span class="g-title">捏捏泡泡 · 打工人的三十秒</span>
+      </div>
+      <p class="g-sub">本铺唯一不吓人的摊位</p>
+      <p class="g-desc">
+        整屏泡泡纸，按压拖动随便捏爆，粒子飞溅、手机震动。
+        三种音色：泡泡纸、<span class="hl">木鱼</span>、气泡水；两种模式：整张计时、无限回涨。
+        会议间隙、地铁通勤，三十秒回血。
+      </p>
+      <span class="g-go"><span class="arr">➤</span>开捏</span>
+    </a>
+  </nav>
+
+  <footer>
+    <div class="rule"></div>
+    妖坊游戏铺 · 纯本地手作 · 转发随意
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>一箭封喉 · 风中射帖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;900&family=Cormorant+Garamond:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f3ecdb;--paper2:#e9dfc6;--ink:#2a332c;--ink2:#4a574d;
+  --cinnabar:#c8402f;--cinnabarHi:#e8654f;--gold:#a5762a;--dim:#8b8474;
+  --f-disp:"ZCOOL XiaoWei","STKaiti","Kaiti SC","KaiTi",serif;
+  --f-body:"Noto Serif SC","Songti SC","STSong",serif;
+  --f-num:"Cormorant Garamond","Georgia","Songti SC",serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:var(--f-body);color:var(--ink);overflow:hidden;user-select:none;
+  background:linear-gradient(165deg,#f6f0e0,#ecdfc2 70%,#e4d3ae)}
+#grain{position:fixed;inset:0;pointer-events:none;z-index:50;opacity:.07;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+#app{height:100%;display:flex;flex-direction:column;align-items:center}
+#hud{width:100%;max-width:760px;display:flex;align-items:center;gap:12px;padding:8px 14px}
+#hud .logo{font-family:var(--f-disp);font-size:21px;letter-spacing:5px;color:var(--ink)}
+.scorebox{text-align:center;line-height:1.05}
+.scorebox .lbl{font-size:10px;letter-spacing:3px;color:var(--dim)}
+.scorebox .val{font-family:var(--f-num);font-size:21px;font-weight:700;color:var(--cinnabar)}
+#arrows{font-size:17px;letter-spacing:2px}
+#comboTag{font-family:var(--f-disp);color:var(--cinnabar);font-size:16px;letter-spacing:2px;opacity:0;transition:opacity .2s}
+#comboTag.on{opacity:1}
+#hud .spacer{flex:1}
+.hbtn{background:none;border:1px solid rgba(42,51,44,.3);color:var(--ink2);border-radius:5px;padding:4px 9px;font-size:12px;letter-spacing:2px;cursor:pointer}
+.hbtn:hover{color:var(--cinnabar);border-color:var(--cinnabar)}
+#wrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;width:100%}
+#cv{max-height:100%;max-width:100%;border-radius:10px;touch-action:none;cursor:crosshair;
+  box-shadow:0 14px 40px rgba(90,70,30,.25);border:1px solid rgba(42,51,44,.2)}
+.ov{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  background:rgba(58,50,34,.45);backdrop-filter:blur(4px)}
+.ov.on{display:flex;animation:ovIn .3s}
+@keyframes ovIn{from{opacity:0}to{opacity:1}}
+.ovbox{max-width:430px;width:88vw;padding:30px 30px 26px;border-radius:14px;text-align:center;
+  background:linear-gradient(170deg,#faf5e8,#efe4cb);border:1px solid rgba(42,51,44,.25);
+  box-shadow:0 30px 80px rgba(60,45,15,.35);animation:rise .45s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+.ovbox h1{font-family:var(--f-disp);font-size:42px;letter-spacing:10px;margin:4px 0 2px}
+.ovbox h2{font-family:var(--f-disp);font-size:25px;letter-spacing:8px;color:var(--cinnabar)}
+.ovbox .sub{color:var(--dim);font-size:13px;letter-spacing:4px;margin-bottom:16px}
+.ovbox .story{font-size:13.5px;line-height:2;color:var(--ink2);margin-bottom:18px;text-align:left}
+.ovbox .story b{color:var(--cinnabar)}
+.btn{display:inline-block;font-size:16px;letter-spacing:4px;padding:10px 26px;border-radius:6px;cursor:pointer;
+  border:1px solid rgba(42,51,44,.3);background:#e7dbbe;color:var(--ink);transition:transform .12s,filter .12s}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.05)}
+.btn.primary{background:linear-gradient(180deg,var(--cinnabarHi),var(--cinnabar));border-color:rgba(168,60,40,.5);color:#fff7e8}
+#stats{margin:8px auto 18px;font-size:14px;line-height:2.1;color:var(--ink2)}
+#stats b{color:var(--cinnabar);font-family:var(--f-num);font-size:17px;margin-left:6px}
+.copyok{color:#4a7d55!important}
+</style>
+</head>
+<body>
+<div id="grain"></div>
+<div id="app">
+  <div id="hud">
+    <span class="logo">一箭封喉</span>
+    <div class="scorebox"><div class="lbl">分数</div><div class="val" id="scoreN">0</div></div>
+    <div class="scorebox"><div class="lbl">最佳</div><div class="val" id="bestN" style="color:var(--gold)">0</div></div>
+    <div class="scorebox"><div class="lbl">第几帖</div><div class="val" id="roundN" style="color:var(--ink2)">1</div></div>
+    <span id="arrows">🏹🏹🏹</span>
+    <span id="comboTag">连中 ×2</span>
+    <div class="spacer"></div>
+    <button class="hbtn" id="btnMute">音效 开</button>
+    <button class="hbtn" id="btnRestart">重开</button>
+  </div>
+  <div id="wrap"><canvas id="cv"></canvas></div>
+</div>
+
+<div class="ov on" id="ovStart"><div class="ovbox">
+  <div class="sub">风 起 箭 鸣 · 一 帖 一 命</div>
+  <h1>一箭封喉</h1>
+  <div class="story">
+    民国弓会，风里射帖。<br><br>
+    · <b>按住</b>拉弓：指针位置决定角度，蓄力往复摆动，<b>松手</b>放箭<br>
+    · 箭受<b>重力</b>下坠、被<b>风</b>吹偏——看准风旗再出手<br>
+    · 靶心 10 分，环数递减；<b>8 环以上连中</b>有连击加分<br>
+    · <b>中靶回一箭</b>（上限 5），脱靶折一箭；箭尽局终<br>
+    · 帖越远、风越狂，第八帖起<b>靶子会移动</b>
+  </div>
+  <button class="btn primary" id="btnStart">开 弓</button>
+</div></div>
+
+<div class="ov" id="ovOver"><div class="ovbox">
+  <h2>箭 尽 弓 鸣 止</h2>
+  <div class="sub" id="overSub"></div>
+  <div id="stats"></div>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <button class="btn" id="btnCopy">复制战绩</button>
+    <button class="btn primary" id="btnAgain">再 开 一 弓</button>
+  </div>
+</div></div>
+
+<script>
+/*__ENGINE_START__*/
+(function(){
+'use strict';
+const W=720,H=460,GROUND=402,BOW={x:74,y:326};
+const RINGS=[9,18,28,37,46];      // 10/8/6/4/2 分环半径
+const RING_PTS=[10,8,6,4,2];
+const GRAV=0.13,WIND_F=0.012;
+function fireVel(power){return 12+power/100*14}
+function ringOf(dist){
+  for(let i=0;i<RINGS.length;i++)if(dist<=RINGS[i])return RING_PTS[i];
+  return 0;
+}
+// 箭一步积分；返回新状态
+function stepArrow(a,wind){
+  a.vx+=wind*WIND_F;a.vy+=GRAV;
+  a.x+=a.vx;a.y+=a.vy;
+  return a;
+}
+// 模拟整条轨迹：箭穿越靶面平面（x=target.x）时的垂直偏差定环
+function simulate(angle,power,wind,target,maxSteps){
+  const v=fireVel(power);
+  const a={x:BOW.x,y:BOW.y,vx:Math.cos(angle)*v,vy:Math.sin(angle)*v};
+  let px=a.x,py=a.y;
+  for(let i=0;i<maxSteps;i++){
+    px=a.x;py=a.y;
+    stepArrow(a,wind);
+    if(px<target.x&&a.x>=target.x){
+      const t=(target.x-px)/(a.x-px);
+      const yc=py+(a.y-py)*t;
+      const d=Math.abs(yc-target.y);
+      if(d<=46)return{hit:true,ring:ringOf(d),yc,x:target.x,y:yc,steps:i};
+      return{hit:false,x:a.x,y:a.y,steps:i};
+    }
+    if(a.x>W+80||a.y>GROUND+30||a.x<-60)return{hit:false,x:a.x,y:a.y,steps:i};
+  }
+  return{hit:false,x:a.x,y:a.y,steps:maxSteps};
+}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const E={W,H,GROUND,BOW,RINGS,RING_PTS,ringOf,stepArrow,simulate,fireVel,mulberry32};
+if(typeof module!=='undefined'&&module.exports)module.exports=E;
+if(typeof globalThis!=='undefined')globalThis.YijianEngine=E;
+})();
+/*__ENGINE_END__*/
+</script>
+
+<script>
+(function(){
+'use strict';
+const E=globalThis.YijianEngine;
+const $=s=>document.querySelector(s);
+const cv=$('#cv');cv.width=E.W;cv.height=E.H;
+const ctx=cv.getContext('2d');
+const rng=Math.random;
+
+let score=0,best=+(localStorage.getItem('yijian_best')||0);
+let round=1,arrows=3,combo=0,shots=0,hits=0;
+let target={x:520,y:230,move:false,amp:0,speed:1,baseY:230,phase:0};
+let wind=0,started=false,over=false;
+let charging=false,chargeT=0,aimAng=-0.5,power=0;
+let arrow=null,trail=[],stuck=[],floats=[];
+let shake=0,hitFlash=0,windStreaks=[];
+let state='idle'; // idle | flying | settle
+window.__yijian={get state(){return state},get charging(){return charging},get power(){return Math.round(power)},get aimAng(){return Math.round(aimAng*100)/100},get wind(){return Math.round(wind*10)/10},get target(){return{x:Math.round(target.x),y:Math.round(target.y)}},get started(){return started},get over(){return over},get chargeT(){return Math.round(chargeT)},get rafAlive(){return __rafN>0}};
+
+/* ---------- 音效 ---------- */
+let actx=null,muted=localStorage.getItem('yijian_mute')==='1';
+function ac(){if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();return actx}
+function tone(f,dur,type='sine',vol=.1,slide=0){
+  if(muted)return;
+  try{
+    const a=ac(),o=a.createOscillator(),g=a.createGain();
+    o.type=type;o.frequency.setValueAtTime(f,a.currentTime);
+    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),a.currentTime+dur);
+    g.gain.setValueAtTime(vol,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+dur);
+    o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+dur);
+  }catch(e){}
+}
+const snd={
+  creak:()=>tone(140,.08,'square',.03,20),
+  whoosh:()=>tone(700,.18,'sawtooth',.05,-500),
+  hit:r=>{tone(r>=10?880:520,.12,'triangle',.14,-60);tone(90,.15,'square',.1,-30)},
+  bull:()=>{[660,880,1100].forEach((f,i)=>setTimeout(()=>tone(f,.2,'triangle',.12),i*80))},
+  miss:()=>tone(120,.3,'sine',.1,-60),
+  over:()=>{tone(220,.5,'sawtooth',.1,-120)},
+};
+
+/* ---------- 回合 ---------- */
+function newRound(){
+  round=$('#roundN')?round:round;
+  const tx=400+rng()*230+Math.min(90,round*7);
+  const ty=120+rng()*180;
+  target.baseY=ty;target.x=tx;target.phase=rng()*6.28;
+  target.move=round>=8;
+  target.amp=target.move?18+rng()*34:0;
+  target.speed=target.move?.7+rng()*.8:0;
+  target.y=ty;
+  const wMax=Math.min(5.5,1+round*.3);
+  wind=(rng()*2-1)*wMax;
+  windStreaks=[];
+  for(let i=0;i<14;i++)windStreaks.push({x:rng()*E.W,y:40+rng()*300,l:10+rng()*26,v:.4+rng()*.9});
+  state='idle';arrow=null;trail=[];
+  $('#roundN').textContent=round;
+}
+
+/* ---------- 输入 ---------- */
+function ptr(e){
+  const r=cv.getBoundingClientRect();
+  const cx=(e.clientX-r.left)/r.width*E.W,cy=(e.clientY-r.top)/r.height*E.H;
+  return{x:cx,y:cy};
+}
+cv.addEventListener('pointerdown',e=>{
+  if(!started||over||state!=='idle')return;
+  charging=true;chargeT=0;updateAim(e);cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove',e=>{if(charging)updateAim(e)});
+function updateAim(e){
+  const p=ptr(e);
+  const dx=p.x-E.BOW.x,dy=p.y-E.BOW.y;
+  aimAng=Math.max(-1.45,Math.min(0.5,Math.atan2(dy,dx)));
+}
+cv.addEventListener('pointerup',e=>{
+  if(!charging)return;
+  charging=false;
+  if(state!=='idle'||power<8){power=0;return}
+  const v=E.fireVel(power);
+  arrow={x:E.BOW.x,y:E.BOW.y,vx:Math.cos(aimAng)*v,vy:Math.sin(aimAng)*v};
+  trail=[];state='flying';shots++;power=0;
+  snd.whoosh();
+});
+
+/* ---------- 主循环 ---------- */
+let last=performance.now(),__rafN=0;
+function loop(now){
+  requestAnimationFrame(loop);
+  __rafN++;setTimeout(()=>__rafN--,2000);
+  const dt=Math.min(50,now-last);last=now;
+  if(!started||over){draw();return}
+  const t=now/1000;
+  if(charging){
+    chargeT+=dt;
+    const cyc=1400-Math.min(400,round*30);
+    power=(1-Math.abs(Math.cos(chargeT/cyc*Math.PI)))*100;
+    power=Math.round(power);
+    if(Math.floor(chargeT/180)!==Math.floor((chargeT-dt)/180))snd.creak();
+  }
+  if(target.move)target.y=target.baseY+Math.sin(t*target.speed+target.phase)*target.amp;
+  for(const s of windStreaks){s.x+=wind*s.v*1.6;if(s.x>E.W+40)s.x=-40;if(s.x<-40)s.x=E.W+40}
+  if(state==='flying'&&arrow){
+    const px=arrow.x,py=arrow.y;
+    E.stepArrow(arrow,wind);
+    trail.push({x:arrow.x,y:arrow.y});
+    if(trail.length>28)trail.shift();
+    let done=false;
+    if(px<target.x&&arrow.x>=target.x){
+      const tt=(target.x-px)/(arrow.x-px);
+      const yc=py+(arrow.y-py)*tt;
+      const d=Math.abs(yc-target.y);
+      if(d<=46){hitTarget(d,yc);done=true}
+    }
+    if(!done&&(arrow.x>E.W+60||arrow.y>E.GROUND+40||arrow.x<-50))missTarget();
+  }
+  for(const f of floats){f.y-=.7;f.life-=.012}
+  floats=floats.filter(f=>f.life>0);
+  shake=Math.max(0,shake*.88);hitFlash=Math.max(0,hitFlash-.04);
+  draw();
+}
+function hitTarget(d,yc){
+  const pts=E.ringOf(d);
+  combo=(pts>=8)?combo+1:0;
+  const gain=pts+(combo>1?(combo-1)*3:0);
+  score+=gain;hits++;
+  arrows=Math.min(5,arrows+1);
+  stuck.push({x:target.x,y:target.y,dx:0,dy:yc-target.y});
+  floats.push({x:target.x,y:target.y-56,text:(pts>=10?'封喉！ ':'')+pts+' 分'+(combo>1?' 连击×'+combo:''),life:1,color:pts>=10?'#c8402f':'#2a332c',big:pts>=10});
+  shake=pts>=10?10:5;hitFlash=1;
+  if(pts>=10)snd.bull();else snd.hit(pts);
+  updateHUD();state='settle';
+  setTimeout(()=>{if(!over){round++;newRound();stuck=[];}},900);
+}
+function missTarget(){
+  arrows--;combo=0;
+  floats.push({x:Math.min(E.W-60,Math.max(60,arrow.x)),y:Math.min(E.GROUND-20,arrow.y),text:'脱靶 −1箭',life:1,color:'#8b8474'});
+  snd.miss();updateHUD();state='settle';
+  $('#comboTag').classList.remove('on');
+  if(arrows<=0){setTimeout(gameOver,700);return}
+  setTimeout(()=>{if(!over){round++;newRound();stuck=[];}},800);
+}
+function updateHUD(){
+  $('#scoreN').textContent=score;
+  if(score>best){best=score;localStorage.setItem('yijian_best',best)}
+  $('#bestN').textContent=best;
+  $('#arrows').textContent='🏹'.repeat(Math.max(0,arrows))+'·'.repeat(Math.max(0,5-arrows));
+  const ct=$('#comboTag');
+  if(combo>1){ct.textContent='连中 ×'+combo;ct.classList.add('on')}else ct.classList.remove('on');
+}
+function gameOver(){
+  over=true;snd.over();
+  const acc=shots?Math.round(hits/shots*100):0;
+  $('#stats').innerHTML='总分<b>'+score+'</b><br>最佳<b>'+best+'</b><br>射出<b>'+shots+'</b>箭 · 命中率 <b>'+acc+'%</b><br>止步<b>第 '+round+' 帖</b>';
+  $('#overSub').textContent='风里来，风里去';
+  $('#ovOver').classList.add('on');
+}
+
+/* ---------- 绘制 ---------- */
+function draw(){
+  ctx.save();
+  if(shake>0)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
+  ctx.clearRect(-20,-20,E.W+40,E.H+40);
+  // 纸底
+  ctx.fillStyle='#f3ecdb';ctx.fillRect(-20,-20,E.W+40,E.H+40);
+  // 红日
+  ctx.fillStyle='rgba(200,64,47,.85)';
+  ctx.beginPath();ctx.arc(E.W-96,72,34,0,7);ctx.fill();
+  // 远山
+  ctx.fillStyle='rgba(42,51,44,.12)';
+  ctx.beginPath();ctx.moveTo(0,E.GROUND);
+  ctx.bezierCurveTo(140,240,260,330,420,E.GROUND);
+  ctx.bezierCurveTo(520,300,620,340,E.W,E.GROUND-20);
+  ctx.lineTo(E.W,E.GROUND);ctx.closePath();ctx.fill();
+  // 地面
+  ctx.fillStyle='rgba(42,51,44,.08)';ctx.fillRect(-20,E.GROUND,E.W+40,E.H-E.GROUND+40);
+  ctx.strokeStyle='rgba(42,51,44,.45)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(-20,E.GROUND);ctx.lineTo(E.W+20,E.GROUND);ctx.stroke();
+  // 风缕
+  ctx.strokeStyle='rgba(42,51,44,.18)';ctx.lineWidth=1.5;
+  for(const s of windStreaks){
+    const dir=wind>=0?1:-1;
+    ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(s.x-dir*s.l,s.y);ctx.stroke();
+  }
+  // 风旗
+  drawWind();
+  // 靶
+  drawTarget();
+  // 弓与箭
+  drawBow();
+  // 轨迹
+  ctx.fillStyle='rgba(42,51,44,.3)';
+  for(let i=0;i<trail.length;i++){
+    ctx.globalAlpha=i/trail.length*.6;
+    ctx.beginPath();ctx.arc(trail[i].x,trail[i].y,2.2,0,7);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  if(arrow)drawArrow(arrow.x,arrow.y,Math.atan2(arrow.vy,arrow.vx),true);
+  // 浮字
+  for(const f of floats){
+    ctx.globalAlpha=Math.max(0,f.life);
+    ctx.fillStyle=f.color;
+    ctx.font=(f.big?'900 26px':'700 18px')+' "Noto Serif SC",serif';
+    ctx.textAlign='center';ctx.fillText(f.text,f.x,f.y);
+    ctx.globalAlpha=1;
+  }
+  ctx.restore();
+}
+function drawWind(){
+  const n=Math.min(5,Math.ceil(Math.abs(wind)));
+  const dir=wind>=0?'→':'←';
+  ctx.fillStyle='rgba(42,51,44,.75)';
+  ctx.font='15px "Noto Serif SC",serif';ctx.textAlign='center';
+  ctx.fillText('风 '+dir.repeat(n)+'',E.W/2,30);
+  ctx.font='11px "Noto Serif SC",serif';
+  ctx.fillText((wind>=0?'+':'')+wind.toFixed(1)+' 级',E.W/2,46);
+}
+function drawTarget(){
+  const{x,y}=target;
+  // 靶杆
+  ctx.strokeStyle='rgba(42,51,44,.5)';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(x,y+46);ctx.lineTo(x,E.GROUND);ctx.stroke();
+  // 环
+  const cols=['#f3ecdb','#2a332c','#f3ecdb','#2a332c','#c8402f'];
+  for(let i=4;i>=0;i--){
+    ctx.fillStyle=cols[i];
+    ctx.beginPath();ctx.arc(x,y,E.RINGS[i],0,7);ctx.fill();
+    ctx.strokeStyle='rgba(42,51,44,.55)';ctx.lineWidth=1.5;ctx.stroke();
+  }
+  if(hitFlash>0){
+    ctx.strokeStyle='rgba(200,64,47,'+hitFlash+')';ctx.lineWidth=4;
+    ctx.beginPath();ctx.arc(x,y,48+(1-hitFlash)*18,0,7);ctx.stroke();
+  }
+  // 插着的箭（从靶面指向弓的方向）
+  for(const s of stuck)drawArrow(x+s.dx,y+s.dy,Math.atan2(E.BOW.y-(y+s.dy),E.BOW.x-(x+s.dx)),false);
+}
+function drawBow(){
+  const b=E.BOW;
+  ctx.save();ctx.translate(b.x,b.y);
+  // 弓身
+  ctx.rotate(aimAng);
+  ctx.strokeStyle='#2a332c';ctx.lineWidth=4;
+  ctx.beginPath();ctx.arc(0,0,30,-1.15,1.15);ctx.stroke();
+  // 弦
+  const pull=charging?4+power/100*16:4;
+  ctx.strokeStyle='rgba(42,51,44,.7)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(Math.cos(-1.15)*30,Math.sin(-1.15)*30);ctx.lineTo(-pull,0);ctx.lineTo(Math.cos(1.15)*30,Math.sin(1.15)*30);ctx.stroke();
+  // 搭着的箭
+  ctx.strokeStyle='#2a332c';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(-pull,0);ctx.lineTo(38,0);ctx.stroke();
+  ctx.fillStyle='#c8402f';
+  ctx.beginPath();ctx.moveTo(38,0);ctx.lineTo(31,-3.5);ctx.lineTo(31,3.5);ctx.closePath();ctx.fill();
+  // 蓄力弧
+  if(charging){
+    ctx.rotate(-aimAng);
+    ctx.strokeStyle='rgba(200,64,47,.85)';ctx.lineWidth=5;
+    ctx.beginPath();ctx.arc(0,0,44,-Math.PI/2,-Math.PI/2+power/100*Math.PI*2);ctx.stroke();
+    ctx.fillStyle=power>88?'#c8402f':'#2a332c';
+    ctx.font='700 15px "Cormorant Garamond",serif';ctx.textAlign='center';
+    ctx.fillText(power,0,-54);
+  }
+  ctx.restore();
+}
+function drawArrow(x,y,ang,flying){
+  ctx.save();ctx.translate(x,y);ctx.rotate(ang);
+  ctx.strokeStyle='#2a332c';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(-22,0);ctx.lineTo(6,0);ctx.stroke();
+  ctx.fillStyle='#c8402f';
+  ctx.beginPath();ctx.moveTo(10,0);ctx.lineTo(2,-4);ctx.lineTo(2,4);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(42,51,44,.6)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(-22,0);ctx.lineTo(-27,-4);ctx.moveTo(-22,0);ctx.lineTo(-27,4);ctx.stroke();
+  ctx.restore();
+}
+
+/* ---------- 流程 ---------- */
+$('#btnStart').addEventListener('click',()=>{$('#ovStart').classList.remove('on');ac();started=true;reset()});
+$('#btnAgain').addEventListener('click',()=>{$('#ovOver').classList.remove('on');reset()});
+$('#btnRestart').addEventListener('click',()=>{if(!started)return;$('#ovOver').classList.remove('on');reset()});
+function reset(){
+  score=0;round=1;arrows=3;combo=0;shots=0;hits=0;over=false;
+  stuck=[];floats=[];arrow=null;trail=[];state='idle';
+  updateHUD();newRound();
+}
+$('#btnMute').addEventListener('click',()=>{muted=!muted;localStorage.setItem('yijian_mute',muted?'1':'0');$('#btnMute').textContent=muted?'音效 关':'音效 开'});
+$('#btnMute').textContent=muted?'音效 关':'音效 开';
+$('#btnCopy').addEventListener('click',()=>{
+  const txt='【一箭封喉】我拿了 '+score+' 分、撑到第 '+round+' 帖。风里见真章，敢来比吗？';
+  navigator.clipboard&&navigator.clipboard.writeText(txt).then(()=>{
+    const b=$('#btnCopy');b.textContent='已复制 ✓';b.classList.add('copyok');
+    setTimeout(()=>{b.textContent='复制战绩';b.classList.remove('copyok')},1500);
+  });
+});
+$('#bestN').textContent=best;
+newRound();
+requestAnimationFrame(loop);
+// 看门狗：rAF 被挂起（后台 webview）时用定时器续帧，dt 按真实时间算不会加速
+setInterval(()=>{if(performance.now()-last>250)loop(performance.now())},120);
+})();
+</script>
+</body>
+</html>
