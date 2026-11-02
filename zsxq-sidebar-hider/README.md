@@ -30,7 +30,7 @@
 ## 实现说明
 
 - 知识星球类名（`.group-list-container` / `app-group-list` / `.group-preview-wrapper` / `app-group-info`）来自 Greasyfork 2025-07 #541540、2026-02 #565137 两个油猴脚本交叉验证；**右栏未在登录后页面实测**，类名漂移时 F12 报 class
-- 小报童右栏（`.sidebar-sticky` > `.info-wrapper` > `.paper-info`）2026-11-02 实测；正文区 `.app-container .left` 定宽 630px，需放开 `max-width` 才能吃满宽度
+- 小报童右栏（`.sidebar-sticky` > `.info-wrapper` > `.paper-info`）2026-11-02 实测；补偿用「容器放宽到 1305px 保持居中 + `.left` flex 伸展」，不能用 `max-width:none`（宽屏下容器贴左、内容被裁、右侧留白，已踩坑）
 - 类名全部漂移时降级为几何启发式：贴屏幕左/右缘、固定窄宽、过半屏高、含链接的列视为侧栏打标隐藏
 - Dia 浏览器对 `chrome.commands` 注册支持不全，快捷键走 content script 页面内 keydown 捕获监听（`chrome.commands` 仍注册给标准 Chrome，两路互不冲突）
 - Chrome 137+ 正式版禁止无头命令行加载未打包扩展，自动化验证改为真实页面注入脚本全量回归

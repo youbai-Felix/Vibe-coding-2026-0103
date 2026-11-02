@@ -35,12 +35,15 @@ html.xbt-no-right .paper-info,
 html.xbt-no-right .zsxq-rightbar-detected {
   display: none !important;
 }
-/* .app-container 定宽 960、.left 定宽 630，隐藏右栏后须放开让正文吃满宽度 */
+/* .app-container 定宽 960 居中、.left 定宽 630；右栏占 315+间距 30。
+   补偿：容器放宽到 960+345 仍保持居中（max-width:none 会在宽屏上失控贴左），
+   .left 放开定宽并允许伸展，正文 630 → ~1290 且页面居中 */
 html.xbt-no-right .app-container {
-  max-width: none !important;
+  max-width: 1305px !important;
 }
 html.xbt-no-right .app-container .left {
   max-width: 100% !important;
+  flex: 1 1 auto !important;
 }
 
 /* ===== 屏幕左右两缘的悬浮切换箭头 ===== */

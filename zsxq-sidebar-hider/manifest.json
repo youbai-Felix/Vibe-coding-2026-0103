@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "侧栏隐藏（知识星球/小报童）",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "隐藏知识星球左/右侧栏与小报童右侧专栏信息栏，正文更宽。点工具栏图标 / Alt+Shift+Z（左栏）/ Alt+Shift+X（右栏）/ 页面左右缘悬浮箭头均可切换。",
   "permissions": ["storage"],
   "background": {
