@@ -1,0 +1,41 @@
+/* 左侧星球导航栏：已知类名 + 启发式检测打标兜底 */
+html.zsxq-no-left .group-list-container,
+html.zsxq-no-left app-group-list,
+html.zsxq-no-left .zsxq-sidebar-detected {
+  display: none !important;
+}
+
+/* 左栏隐藏后让主内容区吃掉空出来的宽度（参照阅读模式油猴脚本验证过的补偿写法） */
+html.zsxq-no-left .main-content-container {
+  max-width: 100% !important;
+}
+html.zsxq-no-left .topic-flow-container {
+  margin-left: 0 !important;
+  max-width: 100% !important;
+}
+
+/* 页面左缘的悬浮切换箭头 */
+.zsxq-fab {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2147483647;
+  width: 20px;
+  height: 72px;
+  padding: 0;
+  border: none;
+  border-radius: 0 8px 8px 0;
+  background: rgba(0, 0, 0, 0.18);
+  color: #fff;
+  font-size: 14px;
+  line-height: 72px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0.25;
+  transition: opacity 0.15s, background 0.15s;
+}
+.zsxq-fab:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.35);
+}

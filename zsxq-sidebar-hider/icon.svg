@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" fill="url(#bg)"/>
+  <!-- 左侧栏：一整块粗白条 -->
+  <rect x="22" y="26" width="24" height="76" rx="9" fill="#ffffff"/>
+  <!-- 折叠箭头：粗笔画、大跨度，16px 下仍有约 2px 线宽 -->
+  <path d="M94 44 L64 64 L94 84" stroke="#ffffff" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
