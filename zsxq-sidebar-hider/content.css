@@ -1,3 +1,5 @@
+/* ===== 知识星球 wx.zsxq.com ===== */
+
 /* 左侧星球导航栏：已知类名 + 启发式检测打标兜底 */
 html.zsxq-no-left .group-list-container,
 html.zsxq-no-left app-group-list,
@@ -14,7 +16,34 @@ html.zsxq-no-left .topic-flow-container {
   max-width: 100% !important;
 }
 
-/* 页面左缘的悬浮切换箭头 */
+/* 右侧星球预览/信息栏（未在登录后页面实测，类名漂移时 F12 报 class） */
+html.zsxq-no-right .group-preview-wrapper,
+html.zsxq-no-right app-group-info,
+html.zsxq-no-right .zsxq-rightbar-detected {
+  display: none !important;
+}
+html.zsxq-no-right .main-content-container {
+  max-width: 100% !important;
+}
+
+/* ===== 小报童 xiaobot.net/p/* ===== */
+
+/* 右侧专栏信息栏（.sidebar-sticky > .info-wrapper > .paper-info，2026-11 实测） */
+html.xbt-no-right .sidebar-sticky,
+html.xbt-no-right .info-wrapper,
+html.xbt-no-right .paper-info,
+html.xbt-no-right .zsxq-rightbar-detected {
+  display: none !important;
+}
+/* .app-container 定宽 960、.left 定宽 630，隐藏右栏后须放开让正文吃满宽度 */
+html.xbt-no-right .app-container {
+  max-width: none !important;
+}
+html.xbt-no-right .app-container .left {
+  max-width: 100% !important;
+}
+
+/* ===== 屏幕左右两缘的悬浮切换箭头 ===== */
 .zsxq-fab {
   position: fixed;
   left: 0;
@@ -38,4 +67,10 @@ html.zsxq-no-left .topic-flow-container {
 .zsxq-fab:hover {
   opacity: 1;
   background: rgba(0, 0, 0, 0.35);
+}
+/* 右缘变体：贴右、圆角反向 */
+.zsxq-fab.right {
+  left: auto;
+  right: 0;
+  border-radius: 8px 0 0 8px;
 }
