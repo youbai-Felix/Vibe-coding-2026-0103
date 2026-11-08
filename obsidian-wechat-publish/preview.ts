@@ -1,6 +1,6 @@
-import { ItemView, Modal } from "obsidian";
+import { ItemView, MarkdownView, Modal } from "obsidian";
 import type WeChatPublishPlugin from "./main";
-import { themes, fontFamilyOptions, fontSizeOptions, accentColorOptions, type ThemeConfig } from "./themes";
+import { themes, hiddenThemes, fontFamilyOptions, fontSizeOptions, accentColorOptions, type ThemeConfig } from "./themes";
 import { markdownToWechatHTML, buildConvertOptions, copyHTMLToClipboard } from "./converter";
 import { pushToDraft } from "./push";
 import { aiTypeset, typesetSummary } from "./ai";
@@ -23,6 +23,13 @@ const COPY_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" st
 const SEND_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
 const AI_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>`;
 
+// 同步滚动比例映射（借鉴 qiaomu-publish src/scroll-sync.ts）：
+// 目标 scrollTop = clamp(源比例 0..1) × 目标可滚动高度；任一侧无可滚动高度返回 0
+export function mapScrollTop(sourceTop: number, sourceMax: number, targetMax: number): number {
+  if (sourceMax <= 0 || targetMax <= 0) return 0;
+  return Math.round(Math.min(Math.max(sourceTop / sourceMax, 0), 1) * targetMax);
+}
+
 export class PreviewView extends ItemView {
   plugin: WeChatPublishPlugin;
   previewContainer!: HTMLElement;
@@ -42,6 +49,10 @@ export class PreviewView extends ItemView {
   private aiStatusEl: HTMLElement | null = null;
   private aiStatusTimer: ReturnType<typeof setInterval> | null = null;
   private aiStage = "模型生成中";
+  // 同步滚动（借鉴 qiaomu-publish：双向比例映射 + pending 值 2px 容差消回声，零防抖零延迟）
+  private pendingEditorTop: number | null = null;
+  private pendingPreviewTop: number | null = null;
+  private scrollUnbinds: (() => void)[] = [];
 
   constructor(leaf: any, plugin: WeChatPublishPlugin) {
     super(leaf);
@@ -75,6 +86,8 @@ export class PreviewView extends ItemView {
     if (this.plugin.settings.usePhoneFrame) {
       // 仿 i-devices 结构：frame = 实体外壳（黑底+padding 银色圈），screen = 独立圆角屏幕层
       const phoneFrame = wrapper.createEl("div", { cls: "wechat-phone-frame" });
+      // 显示器物理像素 ≠ 手机屏幕，按用户校准的缩放比例还原真机观感
+      (phoneFrame as any).style.zoom = String(this.plugin.settings.previewZoom / 100);
       const screen = phoneFrame.createEl("div", { cls: "wechat-phone-screen" });
       screen.createEl("div", { cls: "wechat-dynamic-island" });
 
@@ -93,12 +106,16 @@ export class PreviewView extends ItemView {
     }
 
     this.renderPreview();
+    this.setupScrollSync();
 
     this.registerEvent(
       this.app.workspace.on("editor-change", () => this.scheduleRender())
     );
     this.registerEvent(
-      this.app.workspace.on("active-leaf-change", () => this.renderPreview())
+      this.app.workspace.on("active-leaf-change", () => {
+        this.renderPreview();
+        this.setupScrollSync();
+      })
     );
 
     // 点击空白处关闭设置面板
@@ -122,9 +139,6 @@ export class PreviewView extends ItemView {
 
     // 右侧操作按钮
     const actions = toolbar.createEl("div", { cls: "wechat-toolbar-actions" });
-
-    const aiBtn = this.createIconBtn(actions, AI_SVG, "AI 排版");
-    aiBtn.addEventListener("click", () => this.runAiTypeset());
 
     const settingsBtn = this.createIconBtn(actions, SLIDERS_SVG, "设置");
     this.settingsBtn = settingsBtn;
@@ -172,6 +186,7 @@ export class PreviewView extends ItemView {
     this.createSettingSection(area, "主题", (content) => {
       const grid = content.createEl("div", { cls: "wechat-btn-grid" });
       Object.entries(themes).forEach(([key, theme]) => {
+        if (hiddenThemes.has(key)) return;
         const btn = grid.createEl("button", {
           cls: `wechat-btn-theme ${this.plugin.settings.theme === key ? "active" : ""}`,
           text: theme.name,
@@ -184,78 +199,6 @@ export class PreviewView extends ItemView {
         });
       });
     });
-
-    // Dia 一级标题装饰（仅 Dia 系列主题显示）
-    if (this.plugin.settings.theme.startsWith("dia")) {
-      this.createSettingSection(area, "Dia 一级标题", (content) => {
-        const grid = content.createEl("div", { cls: "wechat-btn-grid" });
-        const h1Opts: [string, string][] = [
-          ["bar", "渐变竖条"],
-          ["triangle", "播放三角 ▶"],
-          ["arrow", "右向箭头 ⏏"],
-          ["pill", "渐变方块"],
-          ["label", "填色标签条"],
-          ["gradtext", "渐变文字"],
-        ];
-        h1Opts.forEach(([val, label]) => {
-          const btn = grid.createEl("button", {
-            cls: `wechat-btn-theme ${(this.plugin.settings.diaH1Style || "bar") === val ? "active" : ""}`,
-            text: label,
-          });
-          btn.addEventListener("click", () => {
-            this.plugin.settings.diaH1Style = val;
-            this.plugin.saveSettings();
-            this.buildSettingsContent();
-            this.renderPreview();
-          });
-        });
-      });
-    }
-
-    // Dia 引用样式 / 分割线（仅 Dia 系列主题显示）
-    if (this.plugin.settings.theme.startsWith("dia")) {
-      this.createSettingSection(area, "Dia 引用样式", (content) => {
-        const grid = content.createEl("div", { cls: "wechat-btn-grid" });
-        const opts: [string, string][] = [
-          ["card", "渐变卡片"],
-          ["quote", "大引号"],
-          ["bar", "左粗边"],
-          ["cardquote", "卡片+引号"],
-        ];
-        opts.forEach(([val, label]) => {
-          const btn = grid.createEl("button", {
-            cls: `wechat-btn-theme ${(this.plugin.settings.diaQuoteStyle || "card") === val ? "active" : ""}`,
-            text: label,
-          });
-          btn.addEventListener("click", () => {
-            this.plugin.settings.diaQuoteStyle = val;
-            this.plugin.saveSettings();
-            this.buildSettingsContent();
-            this.renderPreview();
-          });
-        });
-      });
-      this.createSettingSection(area, "Dia 分割线", (content) => {
-        const grid = content.createEl("div", { cls: "wechat-btn-grid" });
-        const opts: [string, string][] = [
-          ["capsule", "渐变短条"],
-          ["dots", "三点渐变"],
-          ["fade", "渐隐线"],
-        ];
-        opts.forEach(([val, label]) => {
-          const btn = grid.createEl("button", {
-            cls: `wechat-btn-theme ${(this.plugin.settings.diaHrStyle || "capsule") === val ? "active" : ""}`,
-            text: label,
-          });
-          btn.addEventListener("click", () => {
-            this.plugin.settings.diaHrStyle = val;
-            this.plugin.saveSettings();
-            this.buildSettingsContent();
-            this.renderPreview();
-          });
-        });
-      });
-    }
 
     // 主题色（矩形色块 2×4 + 圆形自定义取色器，按设计图）
     this.createSettingSection(area, "主题色", (content) => {
@@ -319,19 +262,29 @@ export class PreviewView extends ItemView {
       });
     });
 
-    // 高级选项（字体 / 字号 / 标题居中 / 侧边距 / Mac 代码块 / 图片标注）
-    const details = area.createEl("details", { cls: "wechat-settings-details" });
-    details.createEl("summary", { cls: "wechat-settings-summary", text: "高级选项" });
-    const detailsContent = details.createEl("div", { cls: "wechat-settings-area" });
+    // ====== 紧凑单行设置（无分组，全部平铺） ====== 
+    // 单行设置：左标签 + 右控件（开关/滑杆/按钮组）
+    const row = (parent: HTMLElement, label: string, build: (content: HTMLElement) => void) => {
+      const r = parent.createEl("div", { cls: "wechat-setting-row" });
+      r.createEl("span", { cls: "wechat-setting-row-label", text: label });
+      const content = r.createEl("div", { cls: "wechat-setting-row-content" });
+      build(content);
+    };
+    const toggleRow = (parent: HTMLElement, label: string, get: () => boolean, set: (v: boolean) => void) => {
+      row(parent, label, (content) => {
+        const toggle = content.createEl("label", { cls: "wechat-toggle" });
+        const input = toggle.createEl("input", { cls: "wechat-toggle-input", attr: { type: "checkbox" } });
+        input.checked = get();
+        toggle.createEl("span", { cls: "wechat-toggle-slider" });
+        input.addEventListener("change", () => { set(input.checked); this.plugin.saveSettings(); });
+      });
+    };
 
-    // 字体
-    this.createSettingSection(detailsContent, "字体", (content) => {
-      const grid = content.createEl("div", { cls: "wechat-btn-grid" });
+    const typoBox = area;
+    row(typoBox, "字体", (c) => {
+      const g = c.createEl("div", { cls: "wechat-btn-grid wechat-btn-grid-compact" });
       Object.entries(fontFamilyOptions).forEach(([key, opt]) => {
-        const btn = grid.createEl("button", {
-          cls: `wechat-btn-theme ${this.plugin.settings.fontFamily === key ? "active" : ""}`,
-          text: opt.label,
-        });
+        const btn = g.createEl("button", { cls: `wechat-btn-theme ${this.plugin.settings.fontFamily === key ? "active" : ""}`, text: opt.label });
         btn.addEventListener("click", () => {
           this.plugin.settings.fontFamily = key;
           this.plugin.saveSettings();
@@ -340,15 +293,10 @@ export class PreviewView extends ItemView {
         });
       });
     });
-
-    // 字号
-    this.createSettingSection(detailsContent, "字号", (content) => {
-      const row = content.createEl("div", { cls: "wechat-btn-row" });
+    row(typoBox, "字号", (c) => {
+      const g = c.createEl("div", { cls: "wechat-btn-grid wechat-btn-grid-compact" });
       fontSizeOptions.forEach((opt) => {
-        const btn = row.createEl("button", {
-          cls: `wechat-btn-size ${this.plugin.settings.fontSize === opt.value ? "active" : ""}`,
-          text: opt.label,
-        });
+        const btn = g.createEl("button", { cls: `wechat-btn-theme ${this.plugin.settings.fontSize === opt.value ? "active" : ""}`, text: opt.label });
         btn.addEventListener("click", () => {
           this.plugin.settings.fontSize = opt.value;
           this.plugin.saveSettings();
@@ -357,97 +305,34 @@ export class PreviewView extends ItemView {
         });
       });
     });
-
-    // 标题居中
-    this.createSettingSection(detailsContent, "标题居中", (content) => {
-      const toggle = content.createEl("label", { cls: "wechat-toggle" });
-      const input = toggle.createEl("input", {
-        cls: "wechat-toggle-input",
-        attr: { type: "checkbox" },
-      });
-      if (this.plugin.settings.centerHeading) input.checked = true;
-      toggle.createEl("span", { cls: "wechat-toggle-slider" });
-      input.addEventListener("change", () => {
-        this.plugin.settings.centerHeading = input.checked;
-        this.plugin.saveSettings();
-        this.renderPreview();
-      });
-    });
-
-    // 侧边距
-    this.createSettingSection(detailsContent, "侧边距", (content) => {
-      const sliderContainer = content.createEl("div", { cls: "wechat-slider-container" });
-      const slider = sliderContainer.createEl("input", {
-        cls: "wechat-slider",
-        attr: { type: "range", min: "8", max: "30", step: "1", value: String(this.plugin.settings.sideMargin) },
-      });
-      const label = sliderContainer.createEl("span", { cls: "wechat-slider-label", text: `${this.plugin.settings.sideMargin}px` });
+    row(typoBox, "侧边距", (c) => {
+      const slider = c.createEl("input", { cls: "wechat-slider", attr: { type: "range", min: "8", max: "30", step: "1", value: String(this.plugin.settings.sideMargin) } });
+      const label = c.createEl("span", { cls: "wechat-slider-label", text: `${this.plugin.settings.sideMargin}px` });
       slider.addEventListener("input", () => {
         const v = parseInt(slider.value);
         this.plugin.settings.sideMargin = v;
         label.textContent = `${v}px`;
         this.renderPreview();
       });
-      slider.addEventListener("change", () => {
-        this.plugin.saveSettings();
-      });
+      slider.addEventListener("change", () => { this.plugin.saveSettings(); });
     });
+    toggleRow(typoBox, "标题居中", () => this.plugin.settings.centerHeading, (v) => { this.plugin.settings.centerHeading = v; this.renderPreview(); });
+    toggleRow(typoBox, "代码块圆点", () => this.plugin.settings.macCodeBlock, (v) => { this.plugin.settings.macCodeBlock = v; this.renderPreview(); });
+    toggleRow(typoBox, "图片标注", () => this.plugin.settings.imageCaption, (v) => { this.plugin.settings.imageCaption = v; this.renderPreview(); });
 
-    // AI 排版
-    this.createSettingSection(detailsContent, "AI 排版", (content) => {
-      const mkInput = (label: string, key: "aiApiUrl" | "aiApiKey" | "aiModel", placeholder: string) => {
-        const row = content.createEl("div", { cls: "wechat-ai-setting-row" });
-        row.createEl("span", { cls: "wechat-ai-setting-label", text: label });
-        const input = row.createEl("input", {
-          cls: "wechat-text-input",
-          attr: { type: "text", placeholder },
-        });
-        input.value = this.plugin.settings[key];
-        input.addEventListener("change", () => {
-          this.plugin.settings[key] = input.value.trim();
-          this.plugin.saveSettings();
-        });
-      };
-      mkInput("API 地址", "aiApiUrl", "https://open.bigmodel.cn/api/anthropic/v1/messages");
-      mkInput("API Key", "aiApiKey", "sk-...");
-      mkInput("模型", "aiModel", "glm-5.3");
-      content.createEl("div", {
-        cls: "wechat-ai-setting-hint",
-        text: "Coding Plan 订阅 Key 填 anthropic/v1/messages（走订阅额度）；按量付费 Key 填 paas/v4/chat/completions。配好后点工具栏 ✨ 排版",
+    const viewBox = area;
+    row(viewBox, "预览缩放", (c) => {
+      const slider = c.createEl("input", { cls: "wechat-slider", attr: { type: "range", min: "70", max: "110", step: "1", value: String(this.plugin.settings.previewZoom) } });
+      const label = c.createEl("span", { cls: "wechat-slider-label", text: `${this.plugin.settings.previewZoom}%` });
+      slider.addEventListener("input", () => {
+        const v = Number(slider.value);
+        this.plugin.settings.previewZoom = v;
+        label.textContent = `${v}%`;
+        const frame = this.containerEl.querySelector(".wechat-phone-frame") as HTMLElement | null;
+        if (frame) (frame as any).style.zoom = String(v / 100);
       });
     });
-
-    // Mac 代码块
-    this.createSettingSection(detailsContent, "Mac 代码块", (content) => {
-      const toggle = content.createEl("label", { cls: "wechat-toggle" });
-      const input = toggle.createEl("input", {
-        cls: "wechat-toggle-input",
-        attr: { type: "checkbox" },
-      });
-      if (this.plugin.settings.macCodeBlock) input.checked = true;
-      toggle.createEl("span", { cls: "wechat-toggle-slider" });
-      input.addEventListener("change", () => {
-        this.plugin.settings.macCodeBlock = input.checked;
-        this.plugin.saveSettings();
-        this.renderPreview();
-      });
-    });
-
-    // 图片标注
-    this.createSettingSection(detailsContent, "图片标注", (content) => {
-      const toggle = content.createEl("label", { cls: "wechat-toggle" });
-      const input = toggle.createEl("input", {
-        cls: "wechat-toggle-input",
-        attr: { type: "checkbox" },
-      });
-      if (this.plugin.settings.imageCaption) input.checked = true;
-      toggle.createEl("span", { cls: "wechat-toggle-slider" });
-      input.addEventListener("change", () => {
-        this.plugin.settings.imageCaption = input.checked;
-        this.plugin.saveSettings();
-        this.renderPreview();
-      });
-    });
+    toggleRow(viewBox, "同步滚动", () => this.plugin.settings.syncScroll, (v) => { this.plugin.settings.syncScroll = v; this.setupScrollSync(); });
   }
 
   createSettingSection(parent: HTMLElement, label: string, buildContent: (content: HTMLElement) => void) {
@@ -463,6 +348,80 @@ export class PreviewView extends ItemView {
     this.plugin.settings.usePhoneFrame = !this.plugin.settings.usePhoneFrame;
     this.plugin.saveSettings();
     this.onOpen();
+  }
+
+  // ====== 同步滚动（编辑器 ⇄ 预览）======
+
+  // 编辑器真实滚动容器：CM6 的 scrollDOM（obsidian API 未暴露滚动事件，运行时取 cm）
+  private editorScrollEl(): HTMLElement | null {
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    const cm = (view?.editor as any)?.cm;
+    return cm?.scrollDOM ?? null;
+  }
+
+  // 绑定/重绑同步监听。toggleMode→onOpen 会重复执行，必须先清旧再绑；
+  // active-leaf-change（切文件/切 leaf）也走这里重绑编辑器侧
+  setupScrollSync() {
+    this.scrollUnbinds.forEach((off) => off());
+    this.scrollUnbinds = [];
+    this.pendingEditorTop = null;
+    this.pendingPreviewTop = null;
+    if (!this.plugin.settings.syncScroll) return;
+
+    const onPreviewScroll = () => {
+      const pv = this.previewContainer;
+      if (this.pendingPreviewTop !== null && Math.abs(pv.scrollTop - this.pendingPreviewTop) < 2) {
+        this.pendingPreviewTop = null; // 程序赋值的回声，吞掉
+        return;
+      }
+      const ed = this.editorScrollEl();
+      if (!ed) return;
+      const eMax = ed.scrollHeight - ed.clientHeight;
+      const pMax = pv.scrollHeight - pv.clientHeight;
+      const target = mapScrollTop(pv.scrollTop, pMax, eMax);
+      if (Math.abs(ed.scrollTop - target) < 2) return; // 死区防抖动
+      const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+      if (!view) return;
+      this.pendingEditorTop = target;
+      view.editor.scrollTo(0, target);
+    };
+    this.previewContainer.addEventListener("scroll", onPreviewScroll, { passive: true });
+    this.scrollUnbinds.push(() => this.previewContainer.removeEventListener("scroll", onPreviewScroll));
+
+    const ed = this.editorScrollEl();
+    if (!ed) return;
+    const onEditorScroll = () => {
+      if (this.pendingEditorTop !== null && Math.abs(ed.scrollTop - this.pendingEditorTop) < 2) {
+        this.pendingEditorTop = null; // 回声
+        return;
+      }
+      const pv = this.previewContainer;
+      const eMax = ed.scrollHeight - ed.clientHeight;
+      const pMax = pv.scrollHeight - pv.clientHeight;
+      const target = mapScrollTop(ed.scrollTop, eMax, pMax);
+      if (Math.abs(pv.scrollTop - target) < 2) return;
+      this.pendingPreviewTop = target;
+      pv.scrollTop = target;
+    };
+    ed.addEventListener("scroll", onEditorScroll, { passive: true });
+    this.scrollUnbinds.push(() => ed.removeEventListener("scroll", onEditorScroll));
+  }
+
+  // 重渲染（内容变高）后从编辑器位置对齐一次预览
+  private realignPreviewFromEditor() {
+    if (!this.plugin.settings.syncScroll) return;
+    const ed = this.editorScrollEl();
+    const pv = this.previewContainer;
+    if (!ed) return;
+    const target = mapScrollTop(ed.scrollTop, ed.scrollHeight - ed.clientHeight, pv.scrollHeight - pv.clientHeight);
+    this.pendingPreviewTop = target;
+    pv.scrollTop = target;
+  }
+
+  onClose() {
+    this.scrollUnbinds.forEach((off) => off());
+    this.scrollUnbinds = [];
+    this.hideAiStatus();
   }
 
   // ====== AI 排版 ======
@@ -645,6 +604,8 @@ export class PreviewView extends ItemView {
 
     this.previewContainer.innerHTML = html;
     this.previewContainer.removeClass("wechat-preview-loading");
+    // 内容重建（高度变化）后按编辑器位置对齐预览，避免漂移
+    this.realignPreviewFromEditor();
   }
 
   async copyHTML() {

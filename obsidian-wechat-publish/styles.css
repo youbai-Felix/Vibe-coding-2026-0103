@@ -128,11 +128,17 @@
   top: 56px;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15), 0 2px 10px rgba(0, 0, 0, 0.05);
+  /* 玻璃质感：低不透明 + 强模糊 + 饱和度补偿（毛玻璃会洗淡背景色，saturate 拉回来） */
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  /* 受光边缘：外描边半透明白 + 内侧顶部高光线，玻璃「厚度感」的关键 */
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-top: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 16px 48px -12px rgba(0, 0, 0, 0.18),
+    0 2px 12px rgba(0, 0, 0, 0.06);
   border-bottom-left-radius: 20px;
   border-bottom-right-radius: 20px;
   z-index: 150;
@@ -141,8 +147,7 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(120, 120, 128, 0.5) transparent;
+  scrollbar-width: none;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-20px);
@@ -150,9 +155,12 @@
 }
 
 .theme-dark .wechat-settings-overlay {
-  background: rgba(30, 30, 30, 0.8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  background: rgba(22, 24, 28, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 16px 48px -12px rgba(0, 0, 0, 0.55);
 }
 
 .wechat-settings-overlay.visible {
@@ -162,11 +170,11 @@
 }
 
 .wechat-settings-overlay::-webkit-scrollbar {
-  width: 4px;
+  display: none;
 }
 
 .wechat-settings-overlay::-webkit-scrollbar-track {
-  background: transparent;
+  display: none;
 }
 
 .wechat-settings-overlay::-webkit-scrollbar-thumb {
@@ -191,11 +199,12 @@
 }
 
 .wechat-setting-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--wc-secondary);
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--wc-primary);
+  opacity: 0.9;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
   margin-bottom: 2px;
 }
 
@@ -212,15 +221,30 @@
 }
 
 .wechat-btn-theme {
-  padding: 6px 8px;
-  border: 1px solid var(--wc-border);
-  border-radius: 6px;
-  background: var(--wc-background);
-  color: var(--wc-secondary);
+  padding: 6px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  /* 玻璃芯片：半透白 + 模糊 + 顶部高光（与面板同族但更实，保证文字清晰） */
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 1px 3px rgba(0, 0, 0, 0.08);
+  color: var(--wc-primary);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+.theme-dark .wechat-btn-theme {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+  color: var(--wc-primary);
 }
 
 .wechat-btn-theme:hover {
@@ -229,10 +253,12 @@
 }
 
 .wechat-btn-theme.active {
-  background: rgba(0, 113, 227, 0.1);
-  color: var(--wc-accent);
-  border-color: rgba(0, 113, 227, 0.3);
-  box-shadow: 0 1px 2px rgba(0, 113, 227, 0.1);
+  background: var(--wc-accent);
+  color: #fff;
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 2px 8px rgba(0, 113, 227, 0.35);
 }
 
 /* ====== 字号按钮行 ====== */
@@ -277,12 +303,16 @@
   height: 32px;
   padding: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--btn-color);
   cursor: pointer;
   transition: all 0.15s ease;
   position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  /* 玻璃受光边缘：白描边 + 顶部高光 + 投影，色块本身保持实色显真色 */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+    0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 .wechat-btn-color:hover {
@@ -541,6 +571,11 @@
   z-index: 1;
 }
 
+/* 隐藏包裹层的横向滚动条（手机壳放不下时仍可拖动，只是不显示轨道） */
+.wechat-preview-wrapper::-webkit-scrollbar:horizontal {
+  display: none;
+}
+
 .theme-dark .wechat-preview-wrapper {
   background: #1e1e1e;
 }
@@ -551,12 +586,13 @@
    frame = 黑底实体壳（padding 区画银色金属圈，inset 环不会被内容盖住）
    screen = 独立圆角屏幕层；侧边按键用 frame 的伪元素凸出壳外 */
 .wechat-phone-frame {
-  width: 407px !important;
-  height: 844px !important;
-  min-width: 407px !important;
-  min-height: 844px !important;
-  max-width: 407px !important;
-  max-height: 844px !important;
+  /* iPhone 15 视口 393×852：外壳 = 视口 + 2×15 padding + 2×1 border */
+  width: 425px !important;
+  height: 884px !important;
+  min-width: 425px !important;
+  min-height: 884px !important;
+  max-width: 425px !important;
+  max-height: 884px !important;
   flex: 0 0 auto;
   margin: auto;
   box-sizing: border-box;
@@ -658,6 +694,10 @@
 .wechat-phone-content {
   flex: 1;
   width: 100%;
+  /* 微信文章页自带的左右页边距（标题断行实测定值 20px：15 字标题整行放下且正文 19 字断行，
+     与 iPhone 15 真机逐行一致；文章纸面四周露出屏幕白边） */
+  padding: 0 20px;
+  box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -1106,4 +1146,123 @@
 
 @keyframes wechat-ai-spin {
   to { transform: rotate(360deg); }
+}
+
+/* 预览校准：微信端代码卡实际内容宽比桌面渲染窄 ~6px（实测断行差一字），
+   仅预览侧把代码卡左右内距 20→23px 对齐真机；导出 HTML 不受影响 */
+.wechat-phone-content section[style*="background-color: #F3F1EA"] {
+  padding-left: 23px !important;
+  padding-right: 23px !important;
+}
+
+/* ====== 设置面板：紧凑分组布局 ===== */
+.wechat-settings-group {
+  margin: 14px 0 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--background-modifier-border);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-faint);
+}
+
+.wechat-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+}
+
+.wechat-setting-row-label {
+  flex-shrink: 0;
+  /* 与「主题/主题色」的 .wechat-setting-label 同款 */
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--wc-primary);
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.wechat-setting-row-content {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.wechat-setting-row-content .wechat-slider {
+  width: 110px;
+}
+
+.wechat-btn-grid-compact {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.wechat-btn-grid-compact .wechat-btn-theme {
+  padding: 3px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 分组折叠抽屉 */
+.wechat-settings-fold {
+  margin: 10px 0 0;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.wechat-settings-fold-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 10px 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wechat-settings-fold-summary::-webkit-details-marker {
+  display: none;
+}
+
+.wechat-settings-fold-summary::before {
+  content: "▸";
+  font-size: 10px;
+  transition: transform 0.15s ease;
+  display: inline-block;
+}
+
+.wechat-settings-fold[open] > .wechat-settings-fold-summary::before {
+  transform: rotate(90deg);
+}
+
+.wechat-settings-fold .wechat-settings-group-body {
+  padding-bottom: 4px;
+}
+
+/* ====== 暗色模式补全 ====== */
+
+/* 折叠摘要（原黑色 2%/5% 底在暗色下不可见，翻转为白） */
+.theme-dark .wechat-settings-summary {
+  background: rgba(255, 255, 255, 0.05);
+}
+.theme-dark .wechat-settings-summary:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+/* 玻璃面板在暗色下亮 8%（面板本体已有暗色版，这里补 78% 清晰度版的底色一致性） */
+.theme-dark .wechat-settings-overlay.visible {
+  background: rgba(22, 24, 28, 0.82);
+}
+
+/* 取色器预览圆点加暗色描边，避免深色主题下与底融为一体 */
+.theme-dark .wechat-color-custom-preview {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.15);
 }
