@@ -31,7 +31,7 @@
 | [anpai](anpai/) · 暗牌 | 扑克牌型 Roguelike：民国妖异赌坊，三盏命灯闯十五层妖局 |
 | [heyaolu](heyaolu/) · 合妖录 | 妖果合成 |
 | [yijian](yijian/) · 一箭封喉 | 风中射帖 |
-| [nieuniu](nieuniu/) · 捏捏泡泡 | 打工人的三十秒 |
+| [nieiniu](nieiniu/) · 捏捏泡泡 | 打工人的三十秒 |
 | [game-hub](game-hub/) | 四款游戏的聚合入口页 |
 
 ## 工作方式
