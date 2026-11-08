@@ -170,6 +170,7 @@ export const taojian: ThemeConfig = {
   codeText: "#BD5D3A",
   codeBlockText: "#44413B",
   quoteBorder: "#BD5D3A",
+  // 标题回墨色（定稿：颜色只属于声音层——眉题/高亮/引用线/行内代码；层级靠字号+字重承担）
   headingColor: "#1F1E1C",
   headingBorder: "#BD5D3A",
   headingBorderWidth: "2px",
@@ -181,7 +182,7 @@ export const taojian: ThemeConfig = {
     "'PingFang SC', 'Hiragino Sans GB', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Microsoft YaHei', sans-serif",
   baseFontSize: "16px",
   lineHeight: "1.9",
-  paragraphMargin: "22px",
+  paragraphMargin: "18px",
   cardRadius: "8px",
   codeBlockRadius: "8px",
   macCodeBlock: false,
@@ -213,13 +214,14 @@ const diaBase = {
   fontFamily:
     "'PingFang SC', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Microsoft YaHei', sans-serif",
   baseFontSize: "16px",
-  lineHeight: "1.85",
-  paragraphMargin: "20px",
+  // 排版节奏与陶笺对齐（行高/字距/段距）；渐变装饰与大圆角保持 Dia 身份
+  lineHeight: "1.9",
+  letterSpacing: "0.1px",
+  paragraphMargin: "22px",
   cardRadius: "12px",
   codeBlockRadius: "16px",
   macCodeBlock: false,
   headingStyle: "left-bar" as const,
-  letterSpacing: "0.2px",
   headingWeight: "700",
 };
 
@@ -333,6 +335,26 @@ export const themes: Record<string, ThemeConfig> = {
   diaMonoRose,
   diaMonoInk,
 };
+
+// 主题面板只展示陶笺；隐藏主题保留代码与渲染支持（data.json 已选中仍可渲染），
+// 想恢复展示把 key 移出集合即可。用户定稿：内容为王，单主题足够
+export const hiddenThemes = new Set([
+  "kazike",
+  "lonely",
+  "zhusha",
+  "dia",
+  "diaAurora",
+  "diaJade",
+  "diaSunset",
+  "diaOcean",
+  "diaGrape",
+  "diaMorandiRose",
+  "diaMorandiBlue",
+  "diaMorandiSage",
+  "diaMonoIndigo",
+  "diaMonoRose",
+  "diaMonoInk",
+]);
 
 // 字体族选项
 export const fontFamilyOptions: Record<string, { label: string; value: string }> = {

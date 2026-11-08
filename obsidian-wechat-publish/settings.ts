@@ -13,6 +13,12 @@ export interface WeChatSettings {
   sideMargin: number;
   centerHeading: boolean;
   imageCaption: boolean;
+  // 编辑器与预览面板双向同步滚动（比例映射，借鉴 qiaomu-publish）
+  syncScroll: boolean;
+  // 陶笺自动眉题（PART ONE·开篇 → … → PART END·终章）总开关；关闭后手写 span.kicker 仍生效
+  kickerEnabled: boolean;
+  // 手机壳预览缩放（%）：显示器物理尺寸≠手机，默认 85 大致对齐真机观感，可对照真手机微调
+  previewZoom: number;
   // Dia 系列一级标题装饰：bar 渐变竖条 / triangle 播放三角 / arrow 右向箭头
   diaH1Style: string;
   // Dia 系列引用样式：card 渐变卡片 / quote 大引号极简 / bar 极简左粗边
@@ -38,9 +44,11 @@ export const DEFAULT_SETTINGS: WeChatSettings = {
   sideMargin: 10,
   centerHeading: false,
   imageCaption: false,
-  diaH1Style: "bar",
-  diaQuoteStyle: "card",
-  diaHrStyle: "capsule",
+  syncScroll: true,
+  kickerEnabled: true,
+  diaH1Style: "gradtext",
+  diaQuoteStyle: "cardquote",
+  diaHrStyle: "dots",
   aiApiUrl: "",
   aiApiKey: "",
   aiModel: "glm-4.6",
@@ -64,45 +72,6 @@ export class WeChatSettingTab extends PluginSettingTab {
       text: "排版设置（主题/字体/字号等）在公众号预览面板的浮动设置里实时调整；这里放需要填一次的配置。",
       cls: "setting-item-description",
     });
-
-    new Setting(containerEl)
-      .setName("AI 排版 · API 地址")
-      .setDesc("GLM Coding Plan 订阅 Key 填 https://open.bigmodel.cn/api/anthropic/v1/messages（走订阅额度）；按量付费 Key 填 https://open.bigmodel.cn/api/paas/v4/chat/completions")
-      .addText((text) =>
-        text
-          .setPlaceholder("https://…/v1/messages 或 …/chat/completions")
-          .setValue(this.plugin.settings.aiApiUrl)
-          .onChange(async (v) => {
-            this.plugin.settings.aiApiUrl = v.trim();
-            await this.plugin.saveSettings();
-          })
-      );
-
-    new Setting(containerEl)
-      .setName("AI 排版 · API Key")
-      .addText((text) => {
-        text.inputEl.type = "password";
-        return text
-          .setPlaceholder("sk-…")
-          .setValue(this.plugin.settings.aiApiKey)
-          .onChange(async (v) => {
-            this.plugin.settings.aiApiKey = v.trim();
-            await this.plugin.saveSettings();
-          });
-      });
-
-    new Setting(containerEl)
-      .setName("AI 排版 · 模型")
-      .setDesc("该端点支持的模型名，默认 glm-4.6")
-      .addText((text) =>
-        text
-          .setPlaceholder("glm-4.6")
-          .setValue(this.plugin.settings.aiModel)
-          .onChange(async (v) => {
-            this.plugin.settings.aiModel = v.trim();
-            await this.plugin.saveSettings();
-          })
-      );
 
     new Setting(containerEl)
       .setName("推送服务地址")
