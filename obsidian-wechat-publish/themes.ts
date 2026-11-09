@@ -193,44 +193,6 @@ export const taojian: ThemeConfig = {
   headingWeight: "700",
 };
 
-// Stephango：复刻 stephango.com 的排版——Flexoki 纸墨配色（纸 #FFFCF0 / 墨 #100F0F /
-// muted #6F6E69 / 发丝线 #E6E4D9 / 米底 #F2F0E5），正文 16px、行高 1.5（网站原版保真，
-// 显著紧于其他主题的 1.85-1.9），标题零装饰纯字号阶梯（渲染见 converter.ts「Stephango」分支），
-// hr = •••，引用 2px 墨线不降灰，高亮 #F6E2A0 实色底，代码米纸底 + 1px 发丝边框，链接墨色下划线。
-export const stephango: ThemeConfig = {
-  name: "Stephango",
-  background: "#FFFCF0",
-  text: "#100F0F",
-  textLight: "#6F6E69",
-  accent: "#100F0F",
-  accentLight: "#F2F0E5",
-  numText: "#100F0F",
-  numBg: "#F2F0E5",
-  border: "#E6E4D9",
-  listBorder: "#E6E4D9",
-  codeBg: "#F2F0E5",
-  codeText: "#100F0F",
-  codeBlockText: "#100F0F",
-  quoteBorder: "#100F0F",
-  headingColor: "#100F0F",
-  headingBorder: "#E6E4D9",
-  headingBorderWidth: "0px",
-  boldColor: "#100F0F",
-  highlightText: "#100F0F",
-  bulletChar: "•",
-  bulletColor: "#100F0F",
-  fontFamily:
-    "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif",
-  baseFontSize: "16px",
-  lineHeight: "1.5",
-  paragraphMargin: "16px",
-  cardRadius: "8px",
-  codeBlockRadius: "8px",
-  macCodeBlock: false,
-  headingStyle: "plain",
-  headingWeight: "600",
-};
-
 // Dia：拆解自《公众号排版样式 · Dia 风格》PDF——干净白底 + 三段品牌渐变，全篇无衬线大圆角。
 // 六套可切换配色：品牌渐变驱动标题竖条/圆点/序号/分隔线，加粗与 H2 字色同套系，
 // 引用块为整块浅底渐变（品牌渐变各停 ~8% 淡色）。
@@ -360,7 +322,6 @@ export const themes: Record<string, ThemeConfig> = {
   lonely,
   zhusha,
   taojian,
-  stephango,
   dia,
   diaAurora,
   diaJade,

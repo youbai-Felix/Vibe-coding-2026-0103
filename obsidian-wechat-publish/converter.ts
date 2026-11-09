@@ -205,10 +205,6 @@ function renderBlockquote(lines: string[], theme: ThemeConfig): string {
       : "";
     return `<section style="margin: 28px 0 0 0; padding-left: 18px; border-left: 2px solid ${theme.quoteBorder};">${bodyHtml}${citeHtml}</section>`;
   }
-  if (theme.name === "Stephango") {
-    // stephango.com：2px 墨色竖线 + 引文保持正色（不降灰），无底色
-    return `<section style="margin: 24px 0 0 0; padding-left: 18px; border-left: 2px solid ${theme.quoteBorder};"><span style="display: block; font-family: ${theme.fontFamily}; font-size: ${theme.baseFontSize}; line-height: ${theme.lineHeight}; color: ${theme.text}; margin: 0;">${content}</span></section>`;
-  }
   return `<blockquote style="margin: 24px 0 0 0; padding: 4px 16px; border-left: 3px solid ${theme.quoteBorder};"><p style="font-size: ${theme.baseFontSize}; color: ${theme.textLight}; line-height: ${theme.lineHeight}; margin: 0;${fontStyle}">${content}</p></blockquote>`;
 }
 
@@ -749,17 +745,6 @@ function renderHeading(text: string, level: number, theme: ThemeConfig, kicker: 
     // 不含宋体/Times，衬线栈在手机上全部回落黑体——统一无衬线让预览与真实渲染一致）
     return `<section style="margin: 36px 0 14px;"><section style="font-size: 18px; font-weight: 600; color: ${theme.headingColor}; line-height: 1.4; letter-spacing: -0.2px; font-family: ${theme.fontFamily};${align}">${text}</section></section>`;
   }
-  if (theme.name === "Stephango") {
-    // stephango.com 标题：零装饰，纯字号阶梯 + 负字距（h1 24/-0.02em、h2 17/-0.015em、
-    // h3 16，字重 600 对齐网站与 Obsidian snippet 定稿；安卓缺 600 档回退变细是已知取舍）
-    const spec: Record<number, { size: string; ls: string; mt: string }> = {
-      1: { size: "24px", ls: "-0.02em", mt: "44px" },
-      2: { size: "17px", ls: "-0.015em", mt: "34px" },
-      3: { size: "16px", ls: "-0.01em", mt: "28px" },
-    };
-    const s = spec[level] || spec[3];
-    return `<section style="margin: ${s.mt} 0 12px 0;"><span style="display: block; font-size: ${s.size}; font-weight: 600; color: ${theme.headingColor}; line-height: 1.4; letter-spacing: ${s.ls}; font-family: ${theme.fontFamily};">${text}</span></section>`;
-  }
   const sizes: Record<number, { size: string; weight: string; color: string }> = {
     1: { size: "22px", weight: hw, color: theme.headingColor },
     2: { size: "19px", weight: hw, color: theme.headingColor },
@@ -858,10 +843,6 @@ function renderItalic(text: string): string {
 
 // ==高亮==：加粗的基础上颜色换主题色（不用 <mark>，公众号会剥掉）
 function renderHighlight(text: string, theme: ThemeConfig): string {
-  if (theme.name === "Stephango") {
-    // stephango.com：#F6E2A0 实色底高亮（不用 <mark>，微信会剥）
-    return `<strong style="font-weight: 700; color: ${theme.highlightText}; background-color: #F6E2A0;">${text}</strong>`;
-  }
   if (theme.name === "陶笺") {
     return `<strong style="font-weight: 700; color: ${theme.highlightText};">${text}</strong>`;
   }
@@ -878,10 +859,6 @@ function renderInlineCode(text: string, theme: ThemeConfig): string {
   const isDia = isDiaTheme(theme);
   if (theme.name === "陶笺") {
     return `<span style="font-family: Menlo, 'PingFang SC', 'SF Mono', 'JetBrains Mono', Consolas, monospace; font-size: 13.5px; color: ${theme.codeText}; background-color: ${theme.codeBg}; padding: 1px 6px; border-radius: 5px; border: 1px solid ${theme.border};">${text}</span>`;
-  }
-  if (theme.name === "Stephango") {
-    // stephango.com：米底胶囊 + 发丝边框，与代码块同族
-    return `<span style="font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; font-size: 13.5px; color: ${theme.codeText}; background-color: ${theme.codeBg}; padding: 1px 6px; border-radius: 5px; border: 1px solid ${theme.border};">${text}</span>`;
   }
   if (isZhusha) {
     return `<span style="font-family: 'Menlo', Monaco, Consolas, monospace; font-size: 13px; color: #2C2A27; background-color: #F0EADD; padding: 2px 5px; border-radius: 3px;">${text}</span>`;
@@ -930,10 +907,6 @@ function renderUnorderedList(
       // 项间缓冲垫 = 每项上下各 1.5px padding（stephango .15rem 0 原样：padding 不折叠，项间合计 3px）
       return `<section style="padding: 1.5px 0 1.5px 30px; text-indent: -22px;"><span style="color: ${theme.bulletColor}; font-size: 8px; vertical-align: 3px; margin-right: 9px;">●</span><span style="font-size: ${theme.baseFontSize}; line-height: 1.75; color: ${theme.text};">${content}</span></section>`;
     }
-    if (theme.name === "Stephango") {
-      // stephango.com：• 字符圆点 + 悬挂缩进 + .15rem 0 项间缓冲垫（陶笺同款节奏，行高跟主题 1.5）
-      return `<section style="padding: 1.5px 0 1.5px 26px; text-indent: -18px;"><span style="color: ${theme.bulletColor}; font-size: 13px; vertical-align: 1px; margin-right: 8px;">•</span><span style="font-size: ${theme.baseFontSize}; line-height: ${theme.lineHeight}; color: ${theme.text};">${content}</span></section>`;
-    }
     if (isChunmu) {
       return `<section style="display: flex; align-items: flex-start; margin-bottom: 15px;"><section style="margin-right: 12px; margin-top: 8px; flex-shrink: 0; width: 6.5px; height: 6.5px; border: 1.5px solid #1F6E43; border-radius: 50%; box-sizing: border-box; background-color: #F0F7F2; box-shadow: 0 0 0 4px #D8ECD8;"></section><span style="color: #3A332F; line-height: 1.7; font-size: ${theme.baseFontSize};">${content}</span></section>`;
     }
@@ -971,10 +944,6 @@ function renderOrderedList(
       // 陶土色。序号占固定宽标记位并右对齐——复刻原生 <ol> 的点号竖线对齐（1. 与 10. 的点同列）；
       // 项间缓冲垫 = 每项上下各 1.5px padding（stephango .15rem 0 原样，项间合计 3px）
       return `<section style="padding: 1.5px 0 1.5px 2.1em; text-indent: -2.1em;"><span style="display: inline-block; width: 1.6em; text-align: right; margin-right: 0.5em; font-family: ${theme.fontFamily}; font-size: ${theme.baseFontSize}; font-weight: 400; color: ${theme.numText};">${num}.</span><span style="font-size: ${theme.baseFontSize}; line-height: 1.75; color: ${theme.text};">${content}</span></section>`;
-    }
-    if (theme.name === "Stephango") {
-      // stephango.com ol 原样：悬挂序号 400 字重，序号墨色，行高跟主题 1.5
-      return `<section style="padding: 1.5px 0 1.5px 2.1em; text-indent: -2.1em;"><span style="display: inline-block; width: 1.6em; text-align: right; margin-right: 0.5em; font-family: ${theme.fontFamily}; font-size: ${theme.baseFontSize}; font-weight: 400; color: ${theme.numText};">${num}.</span><span style="font-size: ${theme.baseFontSize}; line-height: ${theme.lineHeight}; color: ${theme.text};">${content}</span></section>`;
     }
     if (isDia) {
       // 渐变序号徽章保留（Dia 身份）；节奏对齐陶笺：行高 1.75 + 每项 1.5px 上下缓冲垫
@@ -1015,11 +984,6 @@ function renderCodeBlock(code: string, theme: ThemeConfig): string {
     return `<section style="margin: 26px 0 0 0; background-color: ${theme.codeBg}; border: 1px solid ${theme.border}; border-radius: ${theme.codeBlockRadius}; padding: 18px 20px;">${dots}<span style="display: block; margin: 0; font-family: Menlo, 'PingFang SC', 'SF Mono', 'JetBrains Mono', Consolas, monospace; font-size: 13px; line-height: 1.75; color: ${theme.codeBlockText};">${escaped}</span></section>`;
   }
 
-  if (theme.name === "Stephango") {
-    // stephango.com：米纸底 + 1px 发丝边框（非灰底），代码墨色，无装饰圆点
-    return `<section style="margin: 26px 0 0 0; background-color: ${theme.codeBg}; border: 1px solid ${theme.border}; border-radius: ${theme.codeBlockRadius}; padding: 16px 18px;"><span style="display: block; margin: 0; font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 1.6; color: ${theme.codeBlockText};">${escaped}</span></section>`;
-  }
-
   if (isDia) {
     // 左上角三个圆点 = 主题渐变三停色，用带真实文字的 ● 字符实现（空 span 装饰点会被公众号剥掉）
     // 防广告拆卡：内部圆点行与代码体用 span 而非 section——广告算法在段落级元素（p/section）
@@ -1057,11 +1021,6 @@ function renderHr(theme: ThemeConfig): string {
     // 陶笺：居中三点极简，● 字符实现（粘贴安全）
     const dot = (mr: string) => `<span style="color: #A8A49C; font-size: 6px;${mr}">●</span>`;
     return `<section style="margin: 44px 0 0 0; text-align: center;">${dot(" margin-right: 10px;")}${dot(" margin-right: 10px;")}${dot("")}</section>`;
-  }
-  if (theme.name === "Stephango") {
-    // stephango.com：••• 三点，#B7B5AC，间距用 margin-right 16px 等价字距（粘贴安全）
-    const dot = (mr: string) => `<span style="color: #B7B5AC; font-size: 10px;${mr}">•</span>`;
-    return `<section style="margin: 40px 0 0 0; text-align: center;">${dot(" margin-right: 16px;")}${dot(" margin-right: 16px;")}${dot("")}</section>`;
   }
   if (isBauhaus) {
     return `<section style="margin: 40px 0;"><section style="border-top: 4px solid #1A1A1A;"></section></section>`;
@@ -1524,9 +1483,7 @@ function renderInlineToken(token: any, theme: ThemeConfig, resolveImage?: (src: 
   if (token.type === "link") {
     const href = token.href || "";
     const text = renderInlineTokens(token.tokens, theme, resolveImage);
-    // Stephango：链接墨色下划线（stephango.com 原样），其余主题走 accent 色
-    const linkColor = theme.name === "Stephango" ? theme.text : theme.accent;
-    return `<span style="color: ${linkColor}; text-decoration: underline;">${text}</span>`;
+    return `<span style="color: ${theme.accent}; text-decoration: underline;">${text}</span>`;
   }
   // 兜底：递归处理子 token
   if (token.tokens) {
